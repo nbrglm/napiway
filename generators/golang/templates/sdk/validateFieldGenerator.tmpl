@@ -1,0 +1,32 @@
+{{define "goSdkValidateFieldGenerator"}}
+  {{if .NonEmpty}}
+  {{if .IsArray}}
+  if len(o.{{.Name}}) == 0 {
+    return fmt.Errorf("field '{{.Name}}' must be non-empty")
+  }
+  {{else if eq .GoType "string"}}
+  if strings.TrimSpace(o.{{.Name}}) == "" {
+    return fmt.Errorf("field '{{.Name}}' must be non-empty")
+  }
+  {{end}}
+  {{end}}
+  {{if and .IsArray .RecurseValidate}}
+  for idx, item := range o.{{.Name}} {
+    if err := item.Validate(); err != nil {
+      return fmt.Errorf("element %d of field '{{.Name}}' is invalid: %w", idx, err)
+    }
+  }
+  {{else if .RecurseValidate}}
+  {{if .Required}}
+  if err := o.{{.Name}}.Validate(); err != nil {
+    return fmt.Errorf("field '{{.Name}}' is invalid: %w", err)
+  }
+  {{else}}
+  if o.{{.Name}} != nil {
+    if err := o.{{.Name}}.Validate(); err != nil {
+      return fmt.Errorf("field '{{.Name}}' is invalid: %w", err)
+    }
+  }
+  {{end}}
+  {{end}}
+{{end}}

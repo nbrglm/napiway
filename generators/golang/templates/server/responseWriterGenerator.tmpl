@@ -1,0 +1,33 @@
+{{define "goResponseWriterGenerator"}}
+{{if .Description}}// {{.Description}}
+//{{end}}
+// This function WILL CALL w.WriteHeader(), so ensure that no other calls to
+// w.WriteHeader() are made before calling this function.
+func Write{{.Name}}(w http.ResponseWriter, response {{.Name}}) error {
+  // Set headers, if any
+  {{range .Headers}}
+  {{if .Required}}
+  w.Header().Set("{{.TransportName}}", fmt.Sprintf("%v", response.{{.Name}}))
+  {{else}}
+  if response.{{.Name}} != nil {
+    w.Header().Set("{{.TransportName}}", fmt.Sprintf("%v", *response.{{.Name}}))
+  }
+  {{end}}
+  {{end}}
+
+  {{if .ResponseBodyName}}
+  // Set Content-Type
+  w.Header().Set("Content-Type", "{{.ContentType}}")
+
+  // Set status code and write the header
+  w.WriteHeader({{.StatusCode}})
+
+  // Write body
+  return json.NewEncoder(w).Encode(response.Body)
+  {{else}}
+  // Set status code and write the header
+  w.WriteHeader({{.StatusCode}})
+  return nil
+  {{end}}
+}
+{{end}}

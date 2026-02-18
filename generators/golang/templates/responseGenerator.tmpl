@@ -1,0 +1,19 @@
+{{define "goResponseGenerator"}}
+type {{.Name}} struct {
+  {{range .Headers}}
+  // Destination: header "{{.TransportName}}"
+  //
+  {{template "paramGenerator" .}}
+
+  {{end}}
+
+  {{if .ResponseBodyName}}
+  // Response body
+  Body {{.ResponseBodyName}}
+  {{end}}
+}
+
+{{range .SupportingStructs}}
+{{template "structGenerator" .}}
+{{end}}
+{{end}}

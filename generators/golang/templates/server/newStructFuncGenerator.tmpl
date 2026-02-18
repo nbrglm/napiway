@@ -1,0 +1,9 @@
+{{define "newStructFuncGenerator"}}
+func New{{.Name}}(data map[string]any) ({{.Name}}, error) {
+  var body {{.Name}}
+  {{range .Fields}}
+  {{template "goServerValidateFieldGenerator" .}}
+  {{end}}
+  return body, nil
+}
+{{end}}

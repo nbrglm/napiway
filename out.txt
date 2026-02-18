@@ -1,0 +1,1013 @@
+Collected data (indented JSON):
+{
+  "ClientName": "TestingAPI",
+  "ClientVersion": "1.0.0",
+  "Endpoints": [
+    {
+      "Name": "CreateUser",
+      "Request": {
+        "Name": "CreateUserRequest",
+        "Description": "Create a new user in the system.",
+        "ContentType": "application/json",
+        "Method": "POST",
+        "Path": "/users/new",
+        "MaxBodyBytes": null,
+        "HeaderParams": [],
+        "QueryParams": [],
+        "PathParams": [],
+        "SupportingTypes": [
+          {
+            "Name": "CreateUserRequestBody",
+            "Fields": [
+              {
+                "Name": "Age",
+                "Description": "The age of the user to be created.",
+                "Type": "number",
+                "Required": false,
+                "RecurseValidate": false,
+                "IsArray": false,
+                "ElemType": "",
+                "NonEmpty": false
+              },
+              {
+                "Name": "Email",
+                "Description": "The email address of the user to be created.",
+                "Type": "string",
+                "Required": true,
+                "RecurseValidate": false,
+                "IsArray": false,
+                "ElemType": "",
+                "NonEmpty": true
+              },
+              {
+                "Name": "UserName",
+                "Description": "The name of the user to be created.",
+                "Type": "string",
+                "Required": true,
+                "RecurseValidate": false,
+                "IsArray": false,
+                "ElemType": "",
+                "NonEmpty": true
+              }
+            ]
+          }
+        ],
+        "RequestBodyName": "CreateUserRequestBody",
+        "AuthAll": [
+          {
+            "ID": "apiKeyAuth",
+            "Name": "APIKey",
+            "TransportName": "X-App-API-Key",
+            "Type": "header",
+            "Description": "Authentication method that denotes an API key passed in the request header.",
+            "Format": "api_key"
+          },
+          {
+            "ID": "adminTokenAuth",
+            "Name": "AdminToken",
+            "TransportName": "X-App-Admin-Token",
+            "Type": "header",
+            "Description": "Authentication method that denotes an admin token passed in the request header.",
+            "Format": "admin_token"
+          }
+        ],
+        "AuthAny": null
+      },
+      "Responses": {
+        "201": {
+          "StatusCode": 201,
+          "Name": "CreateUser201Response",
+          "Description": "Successful response containing the created user information.",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "CreateUser201ResponseBodyUser",
+              "Fields": [
+                {
+                  "Name": "Age",
+                  "Description": "The age of the user.",
+                  "Type": "number",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "Email",
+                  "Description": "The email address of the user.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                },
+                {
+                  "Name": "IsActive",
+                  "Description": "Indicates whether the user is active.",
+                  "Type": "boolean",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "UserId",
+                  "Description": "The unique identifier of the user.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                },
+                {
+                  "Name": "UserName",
+                  "Description": "The name of the user.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "CreateUser201ResponseBody",
+              "Fields": [
+                {
+                  "Name": "User",
+                  "Description": "Response Schema for GetUser endpoint.",
+                  "Type": "CreateUser201ResponseBodyUser",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "CreateUser201ResponseBody"
+        },
+        "400": {
+          "StatusCode": 400,
+          "Name": "CreateUser400Response",
+          "Description": "Bad Request",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "CreateUser400ResponseBodyError",
+              "Fields": [
+                {
+                  "Name": "DebugMessage",
+                  "Description": "A detailed debug message for developers. Only passed if in debug mode.",
+                  "Type": "string",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "ErrorMessage",
+                  "Description": "An error message which is user-friendly.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "CreateUser400ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Error",
+                  "Description": "Standard error response schema.",
+                  "Type": "CreateUser400ResponseBodyError",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "CreateUser400ResponseBody"
+        },
+        "500": {
+          "StatusCode": 500,
+          "Name": "CreateUser500Response",
+          "Description": "Internal Server Error",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "CreateUser500ResponseBodyError",
+              "Fields": [
+                {
+                  "Name": "DebugMessage",
+                  "Description": "A detailed debug message for developers. Only passed if in debug mode.",
+                  "Type": "string",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "ErrorMessage",
+                  "Description": "An error message which is user-friendly.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "CreateUser500ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Error",
+                  "Description": "Standard error response schema.",
+                  "Type": "CreateUser500ResponseBodyError",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "CreateUser500ResponseBody"
+        }
+      }
+    },
+    {
+      "Name": "GetUser",
+      "Request": {
+        "Name": "GetUserRequest",
+        "Description": "Retrieve user information by user ID.",
+        "ContentType": "application/json",
+        "Method": "GET",
+        "Path": "/users/{userId}",
+        "MaxBodyBytes": null,
+        "HeaderParams": [],
+        "QueryParams": [],
+        "PathParams": [
+          {
+            "Name": "UserId",
+            "TransportName": "userId",
+            "Type": "string",
+            "Required": true,
+            "Description": "The unique identifier of the user."
+          }
+        ],
+        "SupportingTypes": [],
+        "RequestBodyName": null,
+        "AuthAll": [
+          {
+            "ID": "apiKeyAuth",
+            "Name": "APIKey",
+            "TransportName": "X-App-API-Key",
+            "Type": "header",
+            "Description": "Authentication method that denotes an API key passed in the request header.",
+            "Format": "api_key"
+          },
+          {
+            "ID": "sessionTokenAuth",
+            "Name": "SessionToken",
+            "TransportName": "X-App-Session-Token",
+            "Type": "header",
+            "Description": "Authentication method that denotes a session token passed in the request header.",
+            "Format": "session_token"
+          }
+        ],
+        "AuthAny": null
+      },
+      "Responses": {
+        "200": {
+          "StatusCode": 200,
+          "Name": "GetUser200Response",
+          "Description": "Successful response containing user information.",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "GetUser200ResponseBodyUser",
+              "Fields": [
+                {
+                  "Name": "Age",
+                  "Description": "The age of the user.",
+                  "Type": "number",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "Email",
+                  "Description": "The email address of the user.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                },
+                {
+                  "Name": "IsActive",
+                  "Description": "Indicates whether the user is active.",
+                  "Type": "boolean",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "UserId",
+                  "Description": "The unique identifier of the user.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                },
+                {
+                  "Name": "UserName",
+                  "Description": "The name of the user.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "GetUser200ResponseBody",
+              "Fields": [
+                {
+                  "Name": "User",
+                  "Description": "Response Schema for GetUser endpoint.",
+                  "Type": "GetUser200ResponseBodyUser",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "GetUser200ResponseBody"
+        },
+        "400": {
+          "StatusCode": 400,
+          "Name": "GetUser400Response",
+          "Description": "Bad Request",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "GetUser400ResponseBodyError",
+              "Fields": [
+                {
+                  "Name": "DebugMessage",
+                  "Description": "A detailed debug message for developers. Only passed if in debug mode.",
+                  "Type": "string",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "ErrorMessage",
+                  "Description": "An error message which is user-friendly.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "GetUser400ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Error",
+                  "Description": "Standard error response schema.",
+                  "Type": "GetUser400ResponseBodyError",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "GetUser400ResponseBody"
+        },
+        "404": {
+          "StatusCode": 404,
+          "Name": "GetUser404Response",
+          "Description": "User Not Found",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "GetUser404ResponseBodyError",
+              "Fields": [
+                {
+                  "Name": "DebugMessage",
+                  "Description": "A detailed debug message for developers. Only passed if in debug mode.",
+                  "Type": "string",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "ErrorMessage",
+                  "Description": "An error message which is user-friendly.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "GetUser404ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Error",
+                  "Description": "Standard error response schema.",
+                  "Type": "GetUser404ResponseBodyError",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "GetUser404ResponseBody"
+        },
+        "500": {
+          "StatusCode": 500,
+          "Name": "GetUser500Response",
+          "Description": "Internal Server Error",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "GetUser500ResponseBodyError",
+              "Fields": [
+                {
+                  "Name": "DebugMessage",
+                  "Description": "A detailed debug message for developers. Only passed if in debug mode.",
+                  "Type": "string",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "ErrorMessage",
+                  "Description": "An error message which is user-friendly.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "GetUser500ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Error",
+                  "Description": "Standard error response schema.",
+                  "Type": "GetUser500ResponseBodyError",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "GetUser500ResponseBody"
+        }
+      }
+    },
+    {
+      "Name": "HealthCheck",
+      "Request": {
+        "Name": "HealthCheckRequest",
+        "Description": null,
+        "ContentType": "application/json",
+        "Method": "GET",
+        "Path": "/health",
+        "MaxBodyBytes": null,
+        "HeaderParams": [],
+        "QueryParams": [],
+        "PathParams": [],
+        "SupportingTypes": [],
+        "RequestBodyName": null,
+        "AuthAll": null,
+        "AuthAny": null
+      },
+      "Responses": {
+        "200": {
+          "StatusCode": 200,
+          "Name": "HealthCheck200Response",
+          "Description": "OK",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "HealthCheck200ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Status",
+                  "Description": null,
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "HealthCheck200ResponseBody"
+        }
+      }
+    },
+    {
+      "Name": "ListUsers",
+      "Request": {
+        "Name": "ListUsersRequest",
+        "Description": "List users with optional pagination.",
+        "ContentType": "application/json",
+        "Method": "GET",
+        "Path": "/users",
+        "MaxBodyBytes": null,
+        "HeaderParams": [],
+        "QueryParams": [
+          {
+            "Name": "PageNumber",
+            "TransportName": "page",
+            "Type": "number",
+            "Required": false,
+            "Description": "The page number for pagination. Default = 0."
+          },
+          {
+            "Name": "PageSize",
+            "TransportName": "pageSize",
+            "Type": "number",
+            "Required": false,
+            "Description": "The number of items per page for pagination. Default = 10."
+          }
+        ],
+        "PathParams": [],
+        "SupportingTypes": [],
+        "RequestBodyName": null,
+        "AuthAll": [
+          {
+            "ID": "apiKeyAuth",
+            "Name": "APIKey",
+            "TransportName": "X-App-API-Key",
+            "Type": "header",
+            "Description": "Authentication method that denotes an API key passed in the request header.",
+            "Format": "api_key"
+          },
+          {
+            "ID": "adminTokenAuth",
+            "Name": "AdminToken",
+            "TransportName": "X-App-Admin-Token",
+            "Type": "header",
+            "Description": "Authentication method that denotes an admin token passed in the request header.",
+            "Format": "admin_token"
+          }
+        ],
+        "AuthAny": null
+      },
+      "Responses": {
+        "200": {
+          "StatusCode": 200,
+          "Name": "ListUsers200Response",
+          "Description": "Successful response containing a list of users.",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "ListUsers200ResponseBodyUsersItem",
+              "Fields": [
+                {
+                  "Name": "Age",
+                  "Description": "The age of the user.",
+                  "Type": "number",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "Email",
+                  "Description": "The email address of the user.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                },
+                {
+                  "Name": "IsActive",
+                  "Description": "Indicates whether the user is active.",
+                  "Type": "boolean",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "UserId",
+                  "Description": "The unique identifier of the user.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                },
+                {
+                  "Name": "UserName",
+                  "Description": "The name of the user.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "ListUsers200ResponseBody",
+              "Fields": [
+                {
+                  "Name": "PageNumber",
+                  "Description": "The current page number.",
+                  "Type": "number",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "PageSize",
+                  "Description": "The number of items per page.",
+                  "Type": "number",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "TotalCount",
+                  "Description": "The total number of users available.",
+                  "Type": "number",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "Users",
+                  "Description": null,
+                  "Type": "Array\u003cListUsers200ResponseBodyUsersItem\u003e",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": true,
+                  "ElemType": "ListUsers200ResponseBodyUsersItem",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "ListUsers200ResponseBody"
+        },
+        "400": {
+          "StatusCode": 400,
+          "Name": "ListUsers400Response",
+          "Description": "Bad Request",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "ListUsers400ResponseBodyError",
+              "Fields": [
+                {
+                  "Name": "DebugMessage",
+                  "Description": "A detailed debug message for developers. Only passed if in debug mode.",
+                  "Type": "string",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "ErrorMessage",
+                  "Description": "An error message which is user-friendly.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "ListUsers400ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Error",
+                  "Description": "Standard error response schema.",
+                  "Type": "ListUsers400ResponseBodyError",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "ListUsers400ResponseBody"
+        },
+        "500": {
+          "StatusCode": 500,
+          "Name": "ListUsers500Response",
+          "Description": "Internal Server Error",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "ListUsers500ResponseBodyError",
+              "Fields": [
+                {
+                  "Name": "DebugMessage",
+                  "Description": "A detailed debug message for developers. Only passed if in debug mode.",
+                  "Type": "string",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "ErrorMessage",
+                  "Description": "An error message which is user-friendly.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "ListUsers500ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Error",
+                  "Description": "Standard error response schema.",
+                  "Type": "ListUsers500ResponseBodyError",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "ListUsers500ResponseBody"
+        }
+      }
+    },
+    {
+      "Name": "LogoutUser",
+      "Request": {
+        "Name": "LogoutUserRequest",
+        "Description": "Logout the current user.",
+        "ContentType": "application/json",
+        "Method": "GET",
+        "Path": "/users/logout",
+        "MaxBodyBytes": null,
+        "HeaderParams": [],
+        "QueryParams": [],
+        "PathParams": [],
+        "SupportingTypes": [],
+        "RequestBodyName": null,
+        "AuthAll": [
+          {
+            "ID": "apiKeyAuth",
+            "Name": "APIKey",
+            "TransportName": "X-App-API-Key",
+            "Type": "header",
+            "Description": "Authentication method that denotes an API key passed in the request header.",
+            "Format": "api_key"
+          }
+        ],
+        "AuthAny": [
+          {
+            "ID": "sessionTokenAuth",
+            "Name": "SessionToken",
+            "TransportName": "X-App-Session-Token",
+            "Type": "header",
+            "Description": "Authentication method that denotes a session token passed in the request header.",
+            "Format": "session_token"
+          },
+          {
+            "ID": "refreshTokenAuth",
+            "Name": "RefreshToken",
+            "TransportName": "X-App-Refresh-Token",
+            "Type": "header",
+            "Description": "Authentication method that denotes a refresh token passed in the request header.",
+            "Format": "refresh_token"
+          }
+        ]
+      },
+      "Responses": {
+        "200": {
+          "StatusCode": 200,
+          "Name": "LogoutUser200Response",
+          "Description": "Successful logout response.",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "LogoutUser200ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Message",
+                  "Description": "A message confirming successful logout.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "LogoutUser200ResponseBody"
+        },
+        "400": {
+          "StatusCode": 400,
+          "Name": "LogoutUser400Response",
+          "Description": "Bad Request",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "LogoutUser400ResponseBodyError",
+              "Fields": [
+                {
+                  "Name": "DebugMessage",
+                  "Description": "A detailed debug message for developers. Only passed if in debug mode.",
+                  "Type": "string",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "ErrorMessage",
+                  "Description": "An error message which is user-friendly.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "LogoutUser400ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Error",
+                  "Description": "Standard error response schema.",
+                  "Type": "LogoutUser400ResponseBodyError",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "LogoutUser400ResponseBody"
+        },
+        "500": {
+          "StatusCode": 500,
+          "Name": "LogoutUser500Response",
+          "Description": "Internal Server Error",
+          "ContentType": "application/json",
+          "Headers": [],
+          "SupportingTypes": [
+            {
+              "Name": "LogoutUser500ResponseBodyError",
+              "Fields": [
+                {
+                  "Name": "DebugMessage",
+                  "Description": "A detailed debug message for developers. Only passed if in debug mode.",
+                  "Type": "string",
+                  "Required": false,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                },
+                {
+                  "Name": "ErrorMessage",
+                  "Description": "An error message which is user-friendly.",
+                  "Type": "string",
+                  "Required": true,
+                  "RecurseValidate": false,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": true
+                }
+              ]
+            },
+            {
+              "Name": "LogoutUser500ResponseBody",
+              "Fields": [
+                {
+                  "Name": "Error",
+                  "Description": "Standard error response schema.",
+                  "Type": "LogoutUser500ResponseBodyError",
+                  "Required": true,
+                  "RecurseValidate": true,
+                  "IsArray": false,
+                  "ElemType": "",
+                  "NonEmpty": false
+                }
+              ]
+            }
+          ],
+          "ResponseBodyName": "LogoutUser500ResponseBody"
+        }
+      }
+    }
+  ]
+}

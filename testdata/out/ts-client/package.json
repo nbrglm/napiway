@@ -1,0 +1,29 @@
+{
+  "name": "ts-client",
+  "version": "1.0.0",
+  "description": "Testing client for the generated test SDK",
+  "keywords": [
+    "Test",
+    "Generator",
+    "Code",
+    "Generation"
+  ],
+  "homepage": "https://github.com/nbrglm/napiway#readme",
+  "bugs": {
+    "url": "https://github.com/nbrglm/napiway/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nbrglm/napiway.git"
+  },
+  "license": "Apache-2.0",
+  "author": "NBRGLM Developers <support@nbrglm.com>",
+  "type": "esm",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "typescript": "^5.9.3"
+  }
+}

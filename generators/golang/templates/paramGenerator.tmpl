@@ -1,0 +1,6 @@
+{{define "paramGenerator"}}
+  {{if .Description}}// {{.Description}}
+  //{{end}}
+  // {{if .Required}}Required{{else}}Optional{{end}}
+  {{.Name}} {{if not .Required}}*{{end}}{{.GoType}}
+{{end}}

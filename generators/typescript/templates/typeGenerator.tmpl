@@ -1,0 +1,5 @@
+{{define "typeGenerator"}}
+export type {{.Name}} = {
+  {{range .Fields}}{{template "fieldGenerator" .}}{{end}}
+}
+{{end}}

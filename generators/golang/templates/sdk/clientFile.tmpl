@@ -1,0 +1,193 @@
+{{define "goSdkClientFile"}}
+package {{.PackageName}}
+
+import (
+	"bytes"
+  "context"
+  "encoding/json"
+  "io"
+  "net/http"
+  "time"
+)
+
+type  {{.ClientName}} struct {
+  baseURL string
+  client  *http.Client
+}
+
+func New{{.ClientName}}(baseURL string) *{{.ClientName}} {
+  return &{{.ClientName}}{
+    baseURL: baseURL,
+    client:  &http.Client{
+      Timeout: 30 * time.Second,
+    },
+  }
+}
+
+func New{{.ClientName}}WithClient(baseURL string, client *http.Client) *{{.ClientName}} {
+  return &{{.ClientName}}{
+    baseURL: baseURL,
+    client:  client,
+  }
+}
+
+func (c *{{.ClientName}}) do(request *http.Request) (*http.Response, error) {
+  if request.Header.Get("Accept") == "" {
+    request.Header.Set("Accept", "application/json")
+  }
+  request.Header.Set("User-Agent", "{{.ClientName}}-GoSDK/{{.ClientVersion}}")
+  return c.client.Do(request)
+}
+
+{{$clientName := .ClientName}}
+{{range .Endpoints}}
+{{template "goSdkReqResultType" .}}
+
+{{$resultTypeName := printf "%sResult" .Name}}
+{{$zeroReturnVal := printf "%s{}" $resultTypeName}}
+func (c *{{$clientName}}) {{.Name}}(ctx context.Context, params {{.Request.Name}}) ({{$resultTypeName}}, error) {
+  if err := params.Validate(); err != nil {
+    return {{$zeroReturnVal}}, &{{$clientName}}Error{
+      Reason:  {{$clientName}}ErrorReasonInvalidRequest,
+      Message: "invalid request parameters",
+      Err:     err,
+    }
+  }
+  {{if .Request.RequestBodyName}}
+  body, err := json.Marshal(params.Body)
+  if err != nil {
+    return {{$zeroReturnVal}}, &{{$clientName}}Error{
+      Reason:  {{$clientName}}ErrorReasonInvalidRequest,
+      Message: "failed to serialize request body",
+      Err:     err,
+    }
+  }{{end}}
+  path := "{{.Request.Path}}"
+  {{range .Request.PathParams}}
+  pathParam{{.Name}}, err := paramToString(params.{{.Name}}, "path parameter: {{.Name}}", "{{if not .Required}}*{{end}}{{.GoType}}", {{.Required}})
+  if err != nil {
+    return {{$zeroReturnVal}}, &{{$clientName}}Error{
+      Reason:  {{$clientName}}ErrorReasonInvalidRequest,
+      Message: "invalid path parameter: {{.TransportName}}",
+      Err:     err,
+    }
+  }
+  path = strings.ReplaceAll(path, "{{printf "{%s}" .TransportName}}", fmt.Sprintf("%v", pathParam{{.Name}}))
+  {{end}}
+  req, err := http.NewRequestWithContext(
+    ctx,
+    "{{.Request.Method}}",
+    c.baseURL+path,
+    {{if .Request.RequestBodyName}}bytes.NewReader(body),{{else}}nil,{{end}}
+  )
+  if err != nil {
+    return {{$zeroReturnVal}}, &{{$clientName}}Error{
+      Reason:  {{$clientName}}ErrorReasonInvalidRequest,
+      Message: "failed to create HTTP request",
+      Err:     err,
+    }
+  }
+
+  {{if .Request.RequestBodyName}}req.Header.Set("Content-Type", "application/json"){{end}}
+  {{range .Request.HeaderParams}}
+  header{{.Name}}, err := paramToString(params.{{.Name}}, "header parameter: {{.Name}}", "{{if not .Required}}*{{end}}{{.GoType}}", {{.Required}})
+  if err != nil {
+    return {{$zeroReturnVal}}, &{{$clientName}}Error{
+      Reason:  {{$clientName}}ErrorReasonInvalidRequest,
+      Message: "invalid header parameter: {{.TransportName}}",
+      Err:     err,
+    }
+  }
+  req.Header.Set("{{.TransportName}}", header{{.Name}})
+  {{end}}
+  {{if .Request.AuthAll}}
+  {{range .Request.AuthAll}}
+  {{if eq .Type "header"}}
+  auth{{.Name}}, err := paramToString(params.Auth.{{.Name}}, "auth parameter: {{.Name}}", "*string", true)
+  if err != nil {
+    return {{$zeroReturnVal}}, &{{$clientName}}Error{
+      Reason:  {{$clientName}}ErrorReasonInvalidRequest,
+      Message: "invalid auth parameter: {{.TransportName}}",
+      Err:     err,
+    }
+  }
+  req.Header.Set("{{.TransportName}}", auth{{.Name}})
+  {{end}}
+  {{end}}
+  {{end}}
+  {{if .Request.AuthAny}}
+  numAuthParamsSet := 0
+  {{range .Request.AuthAny}}
+  {{if eq .Type "header"}}
+  auth{{.Name}}, err := paramToString(params.Auth.{{.Name}}, "auth parameter: {{.Name}}", "*string", true)
+  if err == nil {
+    numAuthParamsSet++
+    req.Header.Set("{{.TransportName}}", auth{{.Name}})
+  }
+  {{end}}
+  {{end}}
+  if numAuthParamsSet != 1 {
+    return {{$zeroReturnVal}}, &{{$clientName}}Error{
+      Reason:  {{$clientName}}ErrorReasonInvalidRequest,
+      Message: "one auth parameter must be set",
+      Err:     nil,
+    }
+  }
+  {{end}}
+  {{if .Request.QueryParams}}
+  q := req.URL.Query()
+  {{range .Request.QueryParams}}
+  query{{.Name}}, err := paramToString(params.{{.Name}}, "query parameter: {{.Name}}", "{{if not .Required}}*{{end}}{{.GoType}}", {{.Required}})
+  if err != nil {
+    return {{$zeroReturnVal}}, &{{$clientName}}Error{
+      Reason:  {{$clientName}}ErrorReasonInvalidRequest,
+      Message: "invalid query parameter: {{.TransportName}}",
+      Err:     err,
+    }
+  }
+  q.Set("{{.TransportName}}", query{{.Name}})
+  {{end}}
+  req.URL.RawQuery = q.Encode()
+  {{end}}
+  resp, err := c.do(req)
+  if err != nil {
+    return {{$zeroReturnVal}}, &{{$clientName}}Error{
+      Reason:  {{$clientName}}ErrorReasonNetworkError,
+      Message: "network error during HTTP request",
+      Err:     err,
+    }
+  }
+  // resp.Body will be closed in response handlers
+  response := {{$resultTypeName}}{
+    StatusCode: resp.StatusCode,
+  }
+  switch resp.StatusCode {
+    {{range .Responses}}
+    case {{.StatusCode}}:
+      result, err := New{{.Name}}(resp)
+      if err != nil {
+        return {{$zeroReturnVal}}, &{{$clientName}}Error{
+          Reason:  {{$clientName}}ErrorReasonDecodeError,
+          Message: "failed to decode response",
+          Err:     err,
+        }
+      }
+      response.Response{{.StatusCode}} = result
+      return response, nil
+    {{end}}
+
+    default:
+      response.UnknownResponse = &UnknownStatusResponse{
+        StatusCode: resp.StatusCode,
+        Response:   resp,
+      }
+      return response, nil
+  }
+}
+{{end}}
+
+type UnknownStatusResponse struct {
+  StatusCode int
+  Response *http.Response
+}
+{{end}}

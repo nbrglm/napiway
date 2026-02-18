@@ -1,0 +1,78 @@
+{{define "goSdkTypesFile"}}
+package {{.PackageName}}
+
+import (
+  "fmt"
+  "net/http"
+)
+
+type {{.ClientName}}ErrorReason string
+
+const (
+  {{.ClientName}}ErrorReasonInvalidRequest       {{.ClientName}}ErrorReason = "invalid_request"
+  {{.ClientName}}ErrorReasonDecodeError          {{.ClientName}}ErrorReason = "decode_error"
+  {{.ClientName}}ErrorReasonNetworkError         {{.ClientName}}ErrorReason = "network_error"
+  {{.ClientName}}ErrorReasonOtherError           {{.ClientName}}ErrorReason = "other_error"
+)
+
+type {{.ClientName}}Error struct {
+  Reason  {{.ClientName}}ErrorReason
+  Message string
+  Err     error
+}
+
+func (e *{{.ClientName}}Error) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("%s: %s: %v", e.Reason, e.Message, e.Err)
+	}
+	return fmt.Sprintf("%s: %s", e.Reason, e.Message)
+}
+
+{{range .Endpoints}}
+{{with .Request}}
+
+{{template "goSdkRequestGenerator" .}}
+
+func (req *{{.Name}}) Validate() error {
+  {{if .RequestBodyName}}
+  if err := req.Body.Validate(); err != nil {
+    return err
+  }{{end}}
+  // Authentication parameters validation
+  {{if .AuthAll}}
+  // Validate required auth parameters
+  {{range .AuthAll}}
+  if req.Auth.{{.Name}} == nil {
+    return fmt.Errorf("missing required authentication parameter: {{.TransportName}}")
+  }{{end}}{{end}}
+  
+  {{if .AuthAny}}
+  // Get the set of auth parameters
+  authParamsSet := "{{range $i, $a := .AuthAny}}{{if $i}}, {{end}}{{.TransportName}}{{end}}"
+  // Validate at least one auth parameter is present
+  anyAuthParamsPresent := false
+  {{range .AuthAny}}
+  if req.Auth.{{.Name}} != nil {
+    anyAuthParamsPresent = true
+  }
+  {{end}}
+  if !anyAuthParamsPresent {
+    return fmt.Errorf("missing required authentication (any of): %v", authParamsSet)
+  }{{end}}
+  return nil
+}
+
+{{range .SupportingStructs}}
+func (o *{{.Name}}) Validate() error {
+  {{range .Fields}}
+  {{template "goSdkValidateFieldGenerator" .}}
+  {{end}}
+  return nil
+}{{end}}
+{{end}}
+{{range .Responses}}
+{{template "goResponseGenerator" .}}
+
+{{template "goSdkNewResponseFuncGenerator" .}}{{end}}
+{{end}}
+{{end}}

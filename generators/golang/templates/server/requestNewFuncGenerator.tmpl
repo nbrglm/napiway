@@ -1,0 +1,106 @@
+{{define "goServerRequestNewFuncGenerator"}}
+// New{{.Name}} creates a new {{.Name}} from an http.Request and performs parameter parsing and validation.
+func New{{.Name}}(w http.ResponseWriter, r *http.Request) (req {{.Name}}, err error) {
+  {{range .PathParams}}
+  val{{.Name}}, err := parse{{.GoType}}Param(r.PathValue("{{.TransportName}}"), "path: {{.TransportName}}", {{.Required}})
+  if err != nil {
+    return
+  }
+  {{if .Required}}
+  req.{{.Name}} = *val{{.Name}}
+  {{else}}
+  req.{{.Name}} = val{{.Name}}
+  {{end}}
+  {{end}}
+
+  {{range .QueryParams}}
+  val{{.Name}}, err := parse{{.GoType}}Param(r.URL.Query().Get("{{.TransportName}}"), "query: {{.TransportName}}", {{.Required}})
+  if err != nil {
+    return
+  }
+  {{if .Required}}
+  req.{{.Name}} = *val{{.Name}}
+  {{else}}
+  req.{{.Name}} = val{{.Name}}
+  {{end}}
+  {{end}}
+
+  {{range .HeaderParams}}
+  val{{.Name}}, err := parse{{.GoType}}Param(r.Header.Get("{{.TransportName}}"), "header: {{.TransportName}}", {{.Required}})
+  if err != nil {
+    return
+  }
+  {{if .Required}}
+  req.{{.Name}} = *val{{.Name}}
+  {{else}}
+  req.{{.Name}} = val{{.Name}}
+  {{end}}
+  {{end}}
+
+  {{range .AuthAll}}
+  {{if eq .Type "header"}}
+  val{{.Name}} := r.Header.Get("{{.TransportName}}")
+  val{{.Name}} = strings.TrimSpace(val{{.Name}})
+  if val{{.Name}} == "" {
+    req.Auth.{{.Name}} = nil
+  } else {
+    req.Auth.{{.Name}} = &val{{.Name}}
+  }{{end}}{{end}}
+
+  {{range .AuthAny}}
+  {{if eq .Type "header"}}
+  val{{.Name}} := r.Header.Get("{{.TransportName}}")
+  val{{.Name}} = strings.TrimSpace(val{{.Name}})
+  if val{{.Name}} == "" {
+    req.Auth.{{.Name}} = nil
+  } else {
+    req.Auth.{{.Name}} = &val{{.Name}}
+  }{{end}}{{end}}
+
+  {{if .AuthAll}}
+  // Authentication parameters validation
+  // Validate required auth parameters
+  {{range .AuthAll}}
+  if req.Auth.{{.Name}} == nil {
+    err = fmt.Errorf("missing required authentication parameter: {{.TransportName}}")
+    return
+  }{{end}}{{end}}
+
+  {{if .AuthAny}}
+  authParamsSet := "{{range .AuthAny}}{{.TransportName}}, {{end}}"
+  // Validate at least one auth parameter is present
+  anyAuthParamsPresent := false
+  {{range .AuthAny}}
+  if req.Auth.{{.Name}} != nil {
+    anyAuthParamsPresent = true
+  }
+  {{end}}
+  if !anyAuthParamsPresent {
+    err = fmt.Errorf("missing required authentication (any of): %v", authParamsSet)
+    return
+  }
+  {{end}}
+
+  {{if .RequestBodyName}}
+  bodyData := make(map[string]any)
+  {{if .MaxBodyBytes}}
+  maxBodyBytes := int64({{.MaxBodyBytes}})
+  {{else}}
+  maxBodyBytes := int64(256 << 10) // 256 KB default limit
+  {{end}}
+  r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+  err = json.NewDecoder(r.Body).Decode(&bodyData)
+  if err != nil {
+      return
+  }
+  var body {{.RequestBodyName}}
+  body, err = New{{.RequestBodyName}}(bodyData)
+  if err != nil {
+      return
+  }
+  req.Body = body
+  defer r.Body.Close()
+  {{end}}
+  return
+}
+{{end}}

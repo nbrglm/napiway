@@ -1,0 +1,24 @@
+{{define "goServerHandlerFile"}}
+package {{.PackageName}}
+
+import (
+  "encoding/json"
+	"fmt"
+  "net/http"
+  "strconv"
+  "strings"
+)
+
+{{with .Request}}
+{{template "goServerRequestGenerator" .}}
+
+{{template "goServerRequestNewFuncGenerator" .}}
+{{end}}
+
+{{range .Responses}}
+{{template "goResponseGenerator" .}}
+
+{{template "goResponseWriterGenerator" .}}
+{{end}}
+
+{{end}}

@@ -1,0 +1,71 @@
+{{define "requestGenerator"}}
+const {{.Name}}HTTPMethod = "{{.Method}}";
+const {{.Name}}RoutePath   = "{{.Path}}";
+{{if .Description}}
+/**
+ * {{.Description}}
+ */{{end}}
+export type {{.Name}} = {
+{{range .PathParams}}
+  /**
+  * Source: path parameter "{{printf "{%s}" .TransportName}}"
+  {{template "paramGenerator" .}}
+{{end}}
+{{range .QueryParams}}
+  /**
+  * Source: query parameter "{{.TransportName}}"
+  {{template "paramGenerator" .}}
+{{end}}
+{{range .HeaderParams}}
+  /**
+  * Source: header parameter "{{.TransportName}}"
+  {{template "paramGenerator" .}}
+{{end}}
+{{if or .AuthAll .AuthAny}}
+  /**
+  * Authentication parameters
+  */
+  Auth: {{.Name}}AuthParams;
+{{end}}
+{{if .RequestBodyName}}
+  /**
+  * Request body
+  */
+  Body: {{.RequestBodyName}};
+{{end}}
+}
+
+{{range .SupportingTypes}}
+{{template "typeGenerator" .}}
+{{end}}
+
+{{if or .AuthAll .AuthAny}}
+export type {{.Name}}AuthParams = {
+  {{if .AuthAll}}
+  {{range .AuthAll}}
+  /**
+  * Required Authentication Method
+  * Source: {{.Type}} "{{.TransportName}}"
+  * {{if .Description}} Description: {{.Description}} {{end}}
+  * {{if .Format}} Format (NOT ENFORCED): {{.Format}} {{end}}
+  */
+  {{.Name}}?: string;
+  {{end}}
+  {{end}}
+
+  {{if .AuthAny}}
+  /**
+  * At least one of the following authentication methods is required
+  */
+  {{range .AuthAny}}
+  /**
+  * Source: {{.Type}} "{{.TransportName}}"
+  * {{if .Description}} Description: {{.Description}} {{end}}
+  * {{if .Format}} Format (NOT ENFORCED): {{.Format}} {{end}}
+  */
+  {{.Name}}?: string;
+  {{end}}
+  {{end}}
+};
+{{end}}
+{{end}}

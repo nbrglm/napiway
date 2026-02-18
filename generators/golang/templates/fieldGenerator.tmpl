@@ -1,0 +1,9 @@
+{{define "fieldGenerator"}}
+  {{if .Description}}// {{.Description}}
+  //{{end}}
+  {{if .Required}}// Required
+  //{{else}}// Optional
+  //{{end}}{{if .NonEmpty}}
+  // Must be non-empty{{end}}
+  {{.Name}} {{if and (not .Required) (not .IsArray)}}*{{end}}{{.GoType}} `{{.Tag}}`
+{{end}}

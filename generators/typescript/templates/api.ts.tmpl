@@ -1,0 +1,107 @@
+{{define "api.ts"}}
+{{$clientName := .ClientName}}
+import { {{$clientName}}Error } from "./models";
+import * as Models from "./models";
+
+export class {{.ClientName}} {
+  private baseURL: string;
+  private headers: Record<string, string>;
+
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+    this.headers = {
+      'Accept': 'application/json',
+      'User-Agent': '{{.ClientName}}-TypeScriptSDK/{{.ClientVersion}}'
+    };
+  }
+
+  private addHeaders(request: RequestInit): RequestInit {
+    request.headers = { ...this.headers, ...request.headers };
+    return request;
+  }
+
+  {{range .Endpoints}}
+  {{$resultTypeName := printf "%sResult" .Name}}
+  // Throws {{$clientName}}Error, or a network error
+  async {{.Name}}(params: Models.{{.Request.Name}}): Promise<{{$resultTypeName}}> {
+    var result = {} as {{$resultTypeName}};
+    Models.Validate{{.Request.Name}}(params);
+
+    var path = "{{.Request.Path}}";
+    {{range .Request.PathParams}}
+    var pathParam{{.Name}} = paramToString(params.{{.Name}}, "path parameter: {{.Name}}", "{{.Type}}", {{.Required}});
+    path = path.replace("{{printf "{%s}" .TransportName}}", encodeURIComponent(pathParam{{.Name}}));
+    {{end}}
+    const url = new URL(this.baseURL + path);
+    {{range .Request.QueryParams}}
+    var queryParam{{.Name}} = paramToString(params.{{.Name}}, "query parameter: {{.Name}}", "{{.Type}}", {{.Required}});
+    if (queryParam{{.Name}} !== "") {
+      url.searchParams.append("{{.TransportName}}", queryParam{{.Name}});
+    }
+    {{end}}
+
+    var requestInit: RequestInit = {
+      method: "{{.Request.Method}}",
+    }
+    {{range .Request.HeaderParams}}
+    var header{{.Name}} = paramToString(params.{{.Name}}, "header parameter: {{.Name}}", "{{.Type}}", {{.Required}});
+    requestInit.headers = { ...requestInit.headers, "{{.TransportName}}": header{{.Name}} };
+    {{end}}
+    {{if .Request.RequestBodyName}}
+    requestInit.body = JSON.stringify(params.Body);
+    requestInit.headers = { ...requestInit.headers, 'Content-Type': 'application/json' };
+    {{end}}
+    const request = new Request(url, this.addHeaders(requestInit));
+    const response = await fetch(request);
+    result.StatusCode = response.status;
+    switch (response.status) {
+    {{range .Responses}}
+      case {{.StatusCode}}:
+        result.Response{{.StatusCode}} = await Models.New{{.Name}}(response);
+        break;
+    {{end}}
+      default:
+        result.UnknownResponse = {
+          StatusCode: response.status,
+          Resp: response,
+        };
+    }
+    return result;
+  }
+  {{end}}
+}
+
+{{range .Endpoints}}
+type {{.Name}}Result = {
+  StatusCode: number;
+  {{range .Responses}}
+  Response{{.StatusCode}}: Models.{{.Name}};
+  {{end}}
+  UnknownResponse: UnknownStatusResponse;
+}
+{{end}}
+
+type UnknownStatusResponse = {
+  StatusCode: number;
+  Resp: Response;
+}
+
+function paramToString(param: any, paramDescription: string, expectedType: string, required: boolean): string {
+  if (param === undefined || param === null) {
+    if (required) {
+      throw new {{$clientName}}Error(Models.{{$clientName}}ErrorReasonInvalidRequest, `${paramDescription} is required but was not provided`);
+    } else {
+      return "";
+    }
+  }
+
+  if (typeof param === "string") {
+    return param;
+  } else if (typeof param === "number" || typeof param === "boolean") {
+    return param.toString();
+  } else {
+    throw new {{$clientName}}Error(Models.{{$clientName}}ErrorReasonInvalidRequest, `${paramDescription} should be of type ${expectedType} but got ${typeof param}`);
+  }
+}
+
+{{end}}

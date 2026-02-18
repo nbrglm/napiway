@@ -1,0 +1,27 @@
+{
+  "name": "ts-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for Testing API",
+  "homepage": "https://github.com/nbrglm/napiway",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nbrglm/napiway.git"
+  },
+  "license": "Apache-2.0",
+  "author": "NBRGLM Developers <support@nbrglm.com>",
+  "keywords": [
+    "TypeScript",
+    "SDK",
+    "Testing API",
+    "NApiWay",
+    "Code Generation"
+  ],
+  "main": "dist/api.js",
+  "types": "dist/api.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

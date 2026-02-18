@@ -1,0 +1,76 @@
+{{define "goServerValidateFieldGenerator"}}
+  val{{.Name}}, ok := data["{{.Name}}"]
+  if !ok {
+    {{if or .Required .NonEmpty}}
+    return body, fmt.Errorf("missing required field '{{.Name}}'")
+    {{else}}
+    // skip, leave as zero value
+    {{end}}
+  } else {
+    {{if .IsArray}}
+    val{{.Name}}Slice, ok := val{{.Name}}.([]any)
+    if !ok {
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    {{if .NonEmpty}}
+    if len(val{{.Name}}Slice) == 0 {
+      return body, fmt.Errorf("field '{{.Name}}' must be non-empty")
+    }
+    {{end}}
+    val{{.Name}}Typed := make([]{{.ElemGoType}}, 0, len(val{{.Name}}Slice))
+    {{if .RecurseValidate}}
+    for idx, item := range val{{.Name}}Slice {
+      itemMap, ok := item.(map[string]any)
+      if !ok {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' has incorrect type", idx)
+      }
+      validatedItem, err := New{{.ElemGoType}}(itemMap)
+      if err != nil {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' is invalid: %w", idx, err)
+      }
+      val{{.Name}}Typed = append(val{{.Name}}Typed, validatedItem)
+    }
+    {{else}}
+    for idx, item := range val{{.Name}}Slice {
+      itemTyped, ok := item.({{.ElemGoType}})
+      if !ok {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' has incorrect type", idx)
+      }
+      {{if eq .ElemGoType "string"}}
+      itemTyped = strings.TrimSpace(itemTyped)
+      if itemTyped == "" {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' must be non-empty", idx)
+      }
+      {{end}}
+      val{{.Name}}Typed = append(val{{.Name}}Typed, itemTyped)
+    }
+    {{end}}
+    {{else if .RecurseValidate}}
+    val{{.Name}}TypedMap, ok := val{{.Name}}.(map[string]any)
+    if !ok {
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    val{{.Name}}Typed, err := New{{.GoType}}(val{{.Name}}TypedMap)
+    if err != nil {
+      return body, fmt.Errorf("field '{{.Name}}' is invalid: %w", err)
+    }
+    {{else}}
+    val{{.Name}}Typed, ok := val{{.Name}}.({{.GoType}})
+    if !ok {
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    {{if and .NonEmpty (eq .GoType "string")}}
+    val{{.Name}}Typed = strings.TrimSpace(val{{.Name}}Typed)
+    if len(val{{.Name}}Typed) == 0 {
+      return body, fmt.Errorf("field '{{.Name}}' must be non-empty")
+    }
+    {{end}}
+    {{end}}
+    {{if .IsArray}}
+    body.{{.Name}} = val{{.Name}}Typed
+    {{else}}
+    body.{{.Name}} = {{if .Required}}val{{.Name}}Typed{{else}}&val{{.Name}}Typed{{end}}
+    {{end}}
+  }
+
+{{end}}

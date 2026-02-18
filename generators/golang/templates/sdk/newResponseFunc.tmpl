@@ -1,0 +1,27 @@
+{{define "goSdkNewResponseFuncGenerator"}}
+func New{{.Name}}(resp *http.Response) ({{.Name}}, error) {
+  defer resp.Body.Close()
+  result := {{.Name}}{}
+
+  {{range .Headers}}
+  header{{.Name}}, err := parse{{.GoType}}Param(resp.Header.Get("{{.TransportName}}"), "header: {{.TransportName}}", {{.Required}})
+  if err != nil {
+    return result, err
+  }
+  {{if .Required}}
+  result.{{.Name}} = *header{{.Name}}
+  {{else}}
+  result.{{.Name}} = header{{.Name}}
+  {{end}}
+  {{end}}
+
+  {{if .ResponseBodyName}}
+  decoder := json.NewDecoder(resp.Body)
+  if err := decoder.Decode(&result.Body); err != nil {
+    return result, err
+  }
+  {{end}}
+
+  return result, nil
+}
+{{end}}

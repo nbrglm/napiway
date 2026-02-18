@@ -1,0 +1,5 @@
+{{define "structGenerator"}}
+type {{.Name}} struct {
+  {{range .Fields}}{{template "fieldGenerator" .}}{{end}}
+}
+{{end}}

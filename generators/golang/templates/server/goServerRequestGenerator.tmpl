@@ -1,0 +1,6 @@
+{{define "goServerRequestGenerator"}}
+{{template "goRequestGenerator" .}}
+{{range .SupportingStructs}}
+{{template "newStructFuncGenerator" .}}
+{{end}}
+{{end}}

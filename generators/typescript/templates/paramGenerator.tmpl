@@ -1,0 +1,7 @@
+{{define "paramGenerator"}}
+  * {{if .Description}}{{.Description}}{{else}}No description provided.{{end}}
+  * 
+  * {{if .Required}}Required{{else}}Optional{{end}}
+  */
+  {{.Name}}{{if not .Required}}?{{end}}: {{.Type}}{{if not .Required}} | undefined{{end}};
+{{end}}

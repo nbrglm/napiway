@@ -1,0 +1,296 @@
+goServer:
+  outputDir: ./out/server/api
+  packageName: api
+
+goSdk:
+  outputDir: ./out/go-sdk
+  moduleName: github.com/nbrglm/napiway/testdata/out/go_sdk
+
+tsSdk:
+  outputDir: ./out/ts-sdk
+  packageName: ts-sdk
+  description: TypeScript SDK for Testing API
+  author: "NBRGLM Developers <support@nbrglm.com>"
+  license: Apache-2.0
+  repository: git+https://github.com/nbrglm/napiway.git
+  website: https://github.com/nbrglm/napiway
+  keywords:
+    - TypeScript
+    - SDK
+    - Testing API
+    - NApiWay
+    - Code Generation
+
+components:
+  schemas:
+    User: &userSchema
+      type: object
+      required: true
+      description: Response Schema for GetUser endpoint.
+      properties:
+        UserId:
+          type: string
+          required: true
+          nonEmpty: true
+          description: The unique identifier of the user.
+        UserName:
+          type: string
+          required: true
+          nonEmpty: true
+          description: The name of the user.
+        Email:
+          type: string
+          required: true
+          nonEmpty: true
+          description: The email address of the user.
+        IsActive:
+          type: boolean
+          required: true
+          description: Indicates whether the user is active.
+        Age:
+          type: number
+          required: false
+          description: The age of the user.
+    ErrorResponse: &errorResponseSchema
+      type: object
+      required: true
+      description: Standard error response schema.
+      properties:
+        ErrorMessage:
+          type: string
+          required: true
+          nonEmpty: true
+          description: An error message which is user-friendly.
+        DebugMessage:
+          type: string
+          required: false
+          description: A detailed debug message for developers. Only passed if in debug mode.
+
+spec:
+  apiName: Testing API
+  version: "1.0.0"
+  description: Spec for testing various features of the NApiWay Generator.
+  website: https://github.com/nbrglm/napiway
+  contact: contact@nbrglm.com
+  license: Apache-2.0
+
+  auth:
+    - id: apiKeyAuth
+      name: APIKey
+      transportName: X-App-API-Key
+      type: header
+      description: Authentication method that denotes an API key passed in the request header.
+      format: "api_key"
+
+    - id: sessionTokenAuth
+      name: SessionToken
+      transportName: X-App-Session-Token
+      type: header
+      description: Authentication method that denotes a session token passed in the request header.
+      format: "session_token"
+
+    - id: refreshTokenAuth
+      name: RefreshToken
+      transportName: X-App-Refresh-Token
+      type: header
+      description: Authentication method that denotes a refresh token passed in the request header.
+      format: "refresh_token"
+
+    - id: adminTokenAuth
+      name: AdminToken
+      transportName: X-App-Admin-Token
+      type: header
+      description: Authentication method that denotes an admin token passed in the request header.
+      format: "admin_token"
+
+  endpoints:
+    # ─────────────────────────────────────────────
+    # Auth params + Body
+    # ─────────────────────────────────────────────
+    CreateUser:
+      method: POST
+      path: /users/new
+      description: Create a new user in the system.
+      auth:
+        all:
+          - apiKeyAuth
+          - adminTokenAuth
+      requestBody:
+        description: Request body for creating a new user.
+        properties:
+          UserName:
+            type: string
+            required: true
+            nonEmpty: true
+            description: The name of the user to be created.
+          Email:
+            type: string
+            required: true
+            nonEmpty: true
+            description: The email address of the user to be created.
+          Age:
+            type: number
+            required: false
+            description: The age of the user to be created.
+      responses:
+        201:
+          description: Successful response containing the created user information.
+          body:
+            properties:
+              User: *userSchema
+        400:
+          description: Bad Request
+          body:
+            properties:
+              Error: *errorResponseSchema
+        500:
+          description: Internal Server Error
+          body:
+            properties:
+              Error: *errorResponseSchema
+    # ─────────────────────────────────────────────
+    # Path + Auth params
+    # ─────────────────────────────────────────────
+    GetUser:
+      method: GET
+      path: /users/{userId}
+      description: Retrieve user information by user ID.
+
+      auth:
+        all:
+          - apiKeyAuth
+          - sessionTokenAuth
+
+      pathParams:
+        - name: UserId
+          type: string
+          required: true
+          nonEmpty: true
+          description: The unique identifier of the user.
+          transportName: "userId"
+
+      responses:
+        200:
+          description: Successful response containing user information.
+          body:
+            properties:
+              User: *userSchema
+        400:
+          description: Bad Request
+          body:
+            properties:
+              Error: *errorResponseSchema
+        404:
+          description: User Not Found
+          body:
+            properties:
+              Error: *errorResponseSchema
+        500:
+          description: Internal Server Error
+          body:
+            properties:
+              Error: *errorResponseSchema
+
+    # ─────────────────────────────────────────────
+    # Query + Auth params
+    # ─────────────────────────────────────────────
+    ListUsers:
+      method: GET
+      path: /users
+      description: List users with optional pagination.
+      auth:
+        all:
+          - apiKeyAuth
+          - adminTokenAuth
+      queryParams:
+        - name: PageNumber
+          type: number
+          required: false
+          description: The page number for pagination. Default = 0.
+          transportName: page
+        - name: PageSize
+          type: number
+          required: false
+          description: The number of items per page for pagination. Default = 10.
+          transportName: pageSize
+      responses:
+        200:
+          description: Successful response containing a list of users.
+          body:
+            properties:
+              Users:
+                type: array
+                required: true
+                items: *userSchema
+              PageNumber:
+                type: number
+                required: true
+                description: The current page number.
+              PageSize:
+                type: number
+                required: true
+                description: The number of items per page.
+              TotalCount:
+                type: number
+                required: true
+                description: The total number of users available.
+        400:
+          description: Bad Request
+          body:
+            properties:
+              Error: *errorResponseSchema
+        500:
+          description: Internal Server Error
+          body:
+            properties:
+              Error: *errorResponseSchema
+
+    LogoutUser:
+      method: GET
+      path: /users/logout
+      description: Logout the current user.
+      auth:
+        all:
+          - apiKeyAuth
+        any:
+          - sessionTokenAuth
+          - refreshTokenAuth
+      responses:
+        200:
+          description: Successful logout response.
+          body:
+            properties:
+              Message:
+                type: string
+                required: true
+                nonEmpty: true
+                description: A message confirming successful logout.
+        400:
+          description: Bad Request
+          body:
+            properties:
+              Error: *errorResponseSchema
+        500:
+          description: Internal Server Error
+          body:
+            properties:
+              Error: *errorResponseSchema
+
+    # ─────────────────────────────────────────────
+    # Simple health check endpoint
+    # ─────────────────────────────────────────────
+    HealthCheck:
+      method: GET
+      path: /health
+
+      responses:
+        200:
+          description: OK
+          body:
+            type: object
+            required: true
+            properties:
+              status:
+                type: string
+                required: true
+                nonEmpty: true

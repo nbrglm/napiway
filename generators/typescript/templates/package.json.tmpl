@@ -1,0 +1,42 @@
+{{define "package.json"}}
+{
+  "name": "{{.PackageName}}",
+  "version": "{{.Version}}",
+  {{if .Description}}
+  "description": "{{.Description}}",
+  {{else}}
+  "description": "The {{.PackageName}} SDK for Typescript (Node.js/Server-Side use).",
+  {{end}}
+  {{if .Website}}
+  "homepage": "{{.Website}}",
+  {{end}}
+  {{if .Repository}}
+  "repository": {
+    "type": "git",
+    "url": "{{.Repository}}"
+  },
+  {{end}}
+  {{if .License}}
+  "license": "{{.License}}",
+  {{end}}
+  {{if .Author}}
+  "author": "{{.Author}}",
+  {{end}}
+  {{if .Keywords}}
+  "keywords": [
+    {{- range $index, $keyword := .Keywords }}
+    {{- if $index }},{{ end }}
+    "{{ $keyword }}"
+    {{- end }}
+  ],
+  {{end}}
+  "main": "dist/api.js",
+  "types": "dist/api.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
+{{end}}

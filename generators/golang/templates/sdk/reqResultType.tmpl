@@ -1,0 +1,11 @@
+{{define "goSdkReqResultType"}}
+type {{.Name}}Result struct {
+  StatusCode int
+
+  {{range .Responses}}
+  Response{{.StatusCode}} {{.Name}}
+  {{end}}
+
+  UnknownResponse *UnknownStatusResponse
+}
+{{end}}
