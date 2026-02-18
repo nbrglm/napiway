@@ -1,4 +1,3 @@
----
 # API Generator Specification Guide
 
 This document explains how to write a valid YAML specification file for the generator.
@@ -11,9 +10,7 @@ The specification defines:
 * Request/response models
 * Code generation targets (Go server / Go SDK / TS SDK)
 
----
-
-# 1. File Structure Overview
+## 1. File Structure Overview
 
 A valid spec file has this top-level structure:
 
@@ -27,13 +24,11 @@ spec:       # REQUIRED
 
 At least one of `goServer`, `goSdk`, or `tsSdk` must be defined.
 
----
-
-# 2. Code Generation Configuration
+## 2. Code Generation Configuration
 
 These sections define what should be generated.
 
-## 2.1 Go Server
+### 2.1 Go Server
 
 ```yaml
 goServer:
@@ -44,9 +39,7 @@ goServer:
 * `outputDir`: Directory where generated files will be written.
 * `packageName`: Go package name used in generated files.
 
----
-
-## 2.2 Go SDK
+### 2.2 Go SDK
 
 ```yaml
 goSdk:
@@ -57,9 +50,7 @@ goSdk:
 * `outputDir`: Output directory.
 * `moduleName`: Go module path for go.mod.
 
----
-
-## 2.3 TypeScript SDK
+### 2.3 TypeScript SDK
 
 ```yaml
 tsSdk:
@@ -78,9 +69,7 @@ tsSdk:
 
 Only `outputDir` and `packageName` are required.
 
----
-
-# 3. The `spec` Section (Required)
+## 3. The `spec` Section (Required)
 
 This defines the actual API.
 
@@ -98,9 +87,7 @@ spec:
   endpoints: {}              # REQUIRED
 ```
 
----
-
-# 4. Authentication
+## 4. Authentication
 
 Authentication methods are defined globally inside `spec.auth`.
 
@@ -120,9 +107,7 @@ auth:
 * Only `type: header` is supported.
 * If an endpoint references an unknown `id`, validation fails.
 
----
-
-# 5. Endpoints
+## 5. Endpoints
 
 Endpoints are defined as a map:
 
@@ -136,9 +121,7 @@ endpoints:
 
 The key (e.g., `GetUser`) is a unique identifier used for code generation.
 
----
-
-## 5.1 Basic Endpoint Structure
+### 5.1 Basic Endpoint Structure
 
 ```yaml
 method: GET | POST | PUT | DELETE   # REQUIRED
@@ -156,9 +139,7 @@ requestBody: {}                     # optional
 responses: {}                       # optional
 ```
 
----
-
-# 6. Parameters
+## 6. Parameters
 
 Used for path params, headers, and query params.
 
@@ -170,14 +151,12 @@ Used for path params, headers, and query params.
   required: true
 ```
 
-### Required Behavior
+#### Required Behavior
 
 * For `string`, `required: true` means non-empty.
 * For `number` and `boolean`, `required: true` means must be present.
 
----
-
-# 7. Endpoint Authentication Rules
+## 7. Endpoint Authentication Rules
 
 ```yaml
 auth:
@@ -192,9 +171,7 @@ auth:
 * If both exist, both conditions apply.
 * If omitted, endpoint requires no authentication.
 
----
-
-# 8. Request Body
+## 8. Request Body
 
 ```yaml
 requestBody:
@@ -206,9 +183,7 @@ requestBody:
 
 `properties` is required if `requestBody` is defined.
 
----
-
-# 9. Responses
+## 9. Responses
 
 Responses are defined per HTTP status code:
 
@@ -223,9 +198,7 @@ responses:
 
 Status code must be between 100 and 599.
 
----
-
-# 10. Fields (Body Properties)
+## 10. Fields (Body Properties)
 
 Fields define request and response models.
 
@@ -237,11 +210,9 @@ fieldName:
   nonEmpty: true
 ```
 
----
+### 10.1 Field Rules
 
-## 10.1 Field Rules
-
-### Primitive Types
+#### Primitive Types
 
 For:
 
@@ -253,7 +224,7 @@ You cannot define `properties` or `items`.
 
 ---
 
-### Object Type
+#### Object Type
 
 If:
 
@@ -269,9 +240,7 @@ properties:
     type: string
 ```
 
----
-
-### Array Type
+#### Array Type
 
 If:
 
@@ -286,9 +255,7 @@ items:
   type: string
 ```
 
----
-
-### nonEmpty Rule
+#### nonEmpty Rule
 
 * Only valid for:
 
@@ -297,17 +264,13 @@ items:
 * If `nonEmpty: true`, then `required: true` must also be set.
 * Using `nonEmpty` on `number`, `boolean`, or `object` will fail validation.
 
----
-
-# 11. Default Behaviors
+## 11. Default Behaviors
 
 * If `contentType` is not specified → defaults to `application/json`.
 * If response `contentType` is not specified → defaults to `application/json`.
 * If `MaxBodyBytes` is not specified → default limit is applied (256 KB).
 
----
-
-# 12. Common Validation Failures
+## 12. Common Validation Failures
 
 Your spec will fail if:
 
@@ -320,13 +283,11 @@ Your spec will fail if:
 * Invalid HTTP method.
 * Invalid HTTP status code.
 
----
-
-# 13. Naming Conventions (Strict)
+## 13. Naming Conventions (Strict)
 
 All logical names in the specification **must use PascalCase**, except transport-level names.
 
-## Must Be PascalCase
+### Must Be PascalCase
 
 The following fields must follow PascalCase:
 
@@ -341,7 +302,7 @@ The following fields must follow PascalCase:
   * `response.body.properties`
   * nested `object.properties`
 
-### Valid Examples
+#### Valid Examples
 
 ```
 CreateUser
@@ -354,9 +315,7 @@ IsActive
 CreatedAt
 ```
 
----
-
-## Must NOT Be PascalCase
+### Must NOT Be PascalCase
 
 Transport-level names must reflect actual HTTP usage and may follow standard HTTP conventions:
 
@@ -368,9 +327,7 @@ Transport-level names must reflect actual HTTP usage and may follow standard HTT
 
 These must match the real HTTP contract and are not required to be PascalCase.
 
----
-
-## Why This Rule Exists
+### Why This Rule Exists
 
 PascalCase ensures:
 
@@ -384,7 +341,5 @@ Breaking this rule will lead to:
 * Inconsistent struct names
 * Ugly auto-corrections in generators
 * Possible conflicts in strongly typed languages
-
----
 
 For more info, see the [spec.go](./spec/spec.go)
