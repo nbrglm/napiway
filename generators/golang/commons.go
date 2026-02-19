@@ -9,6 +9,7 @@ import (
 
 	"github.com/nbrglm/napiway/spec"
 	"github.com/nbrglm/napiway/utils"
+	"golang.org/x/tools/imports"
 )
 
 func generateGoHelperFuncsFile(packageName string) ([]byte, error) {
@@ -286,9 +287,16 @@ func runGoModInit(moduleName string, dir string) error {
 	return utils.ExecCommand(cmdGoModInit, dir)
 }
 
-// run goimports
-func runGoImports(dir string) error {
-	cmdGoImports := fmt.Sprintf("goimports -w %s", dir)
+func formatWithImports(src []byte) ([]byte, error) {
+	opts := &imports.Options{
+		TabWidth:  8,
+		TabIndent: true,
+		Comments:  true,
+	}
 
-	return utils.ExecCommand(cmdGoImports, "")
+	formattedSrc, err := imports.Process("", src, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to format code with goimports: %w", err)
+	}
+	return formattedSrc, nil
 }

@@ -31,6 +31,10 @@ func GenerateServerHelpers(cfg spec.GoServerGeneration, api spec.Specification) 
 			// handle error
 			return fmt.Errorf("failed to generate handler for %s: %w", endpointName, err)
 		}
+		content, err = formatWithImports(content)
+		if err != nil {
+			return fmt.Errorf("failed to format handler file %s: %w", filePath, err)
+		}
 		err = utils.WriteFile(filePath, content)
 		if err != nil {
 			// handle error
@@ -43,14 +47,13 @@ func GenerateServerHelpers(cfg spec.GoServerGeneration, api spec.Specification) 
 		return fmt.Errorf("failed to generate helper funcs file: %w", err)
 	}
 	helpersFilePath := path.Join(cfg.OutputDir, "helperFuncs.go")
+	helpersFileContent, err = formatWithImports(helpersFileContent)
+	if err != nil {
+		return fmt.Errorf("failed to format helper funcs file: %w", err)
+	}
 	err = utils.WriteFile(helpersFilePath, helpersFileContent)
 	if err != nil {
 		return fmt.Errorf("failed to write helper funcs file: %w", err)
-	}
-
-	// run fmt and goimports
-	if err := runGoImports(cfg.OutputDir); err != nil {
-		return fmt.Errorf("failed to run goimports: %w", err)
 	}
 	return nil
 }

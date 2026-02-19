@@ -30,6 +30,10 @@ func GenerateGoSDK(cfg spec.GoSDKGeneration, api spec.Specification) error {
 	if err != nil {
 		return err
 	}
+	clientFileContent, err = formatWithImports(clientFileContent)
+	if err != nil {
+		return err
+	}
 	err = utils.WriteFile(clientFilePath, clientFileContent)
 	if err != nil {
 		return err
@@ -40,6 +44,10 @@ func GenerateGoSDK(cfg spec.GoSDKGeneration, api spec.Specification) error {
 	typesFileContent, err := createGoSDKTypesFile(fileData)
 	if err != nil {
 		// handle error
+		return err
+	}
+	typesFileContent, err = formatWithImports(typesFileContent)
+	if err != nil {
 		return err
 	}
 	err = utils.WriteFile(typesFilePath, typesFileContent)
@@ -54,6 +62,10 @@ func GenerateGoSDK(cfg spec.GoSDKGeneration, api spec.Specification) error {
 		return fmt.Errorf("failed to generate helper funcs file: %w", err)
 	}
 	helpersFilePath := path.Join(cfg.OutputDir, "helperFuncs.go")
+	helpersFileContent, err = formatWithImports(helpersFileContent)
+	if err != nil {
+		return fmt.Errorf("failed to format helper funcs file: %w", err)
+	}
 	err = utils.WriteFile(helpersFilePath, helpersFileContent)
 	if err != nil {
 		return fmt.Errorf("failed to write helper funcs file: %w", err)
@@ -65,7 +77,7 @@ func GenerateGoSDK(cfg spec.GoSDKGeneration, api spec.Specification) error {
 		return err
 	}
 
-	return runGoImports(cfg.OutputDir)
+	return nil
 }
 
 func createGoSDKClientFile(data *GoSdkClientAndTypesFileTemplateData, api *spec.Specification) ([]byte, error) {
