@@ -2,7 +2,6 @@ package typescript
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"path"
 	"slices"
@@ -138,13 +137,6 @@ func createTsSDKApiFile(data *TsSdkApiAndModelsFilesTemplateData, api *spec.Spec
 
 		data.Endpoints = append(data.Endpoints, sdkEndpoint)
 	}
-
-	// debug print collected data
-	indentMarshalled, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("Collected data (indented JSON):\n%s\n", string(indentMarshalled))
 
 	var buf bytes.Buffer
 	tmpl, err := template.ParseFS(tsTemplates, "templates/*")

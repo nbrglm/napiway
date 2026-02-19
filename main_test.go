@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"embed"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,9 +13,6 @@ import (
 	"testing"
 	"time"
 )
-
-//go:embed testdata/spec.yaml
-var testdata embed.FS
 
 var serverInterface = "localhost:5000"
 var httpServerURL = "http://" + serverInterface
@@ -35,23 +31,12 @@ func TestSpec(t *testing.T) {
 	specPath := path.Join(dir, "testdata/spec.yaml")
 	serverPath := path.Join(dir, "testdata/out/server")
 	clientPath := path.Join(dir, "testdata/out/client")
+	tsClientPath := path.Join(dir, "testdata/out/ts-client")
 
-	runTestForSpec(t, dir, specPath, serverPath, clientPath)
+	runTestForSpec(t, dir, specPath, serverPath, clientPath, tsClientPath)
 }
 
-// func TestSpecLow(t *testing.T) {
-// 	dir, err := os.Getwd()
-// 	if err != nil {
-// 		t.Fatalf("Failed to get current working directory: %v", err)
-// 	}
-// 	lowSpecPath := path.Join(dir, "testdata/spec-low.yaml")
-// 	lowServerPath := path.Join(dir, "testdata/out/low/server")
-// 	lowClientPath := path.Join(dir, "testdata/out/low/client")
-
-// 	runTestForSpec(t, dir, lowSpecPath, lowServerPath, lowClientPath)
-// }
-
-func runTestForSpec(t *testing.T, workDir, specPath, serverPath, clientPath string) {
+func runTestForSpec(t *testing.T, workDir, specPath, serverPath, clientPath, tsClientPath string) {
 	generateTestServerHelpers(t, workDir, specPath)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -94,24 +79,35 @@ func runTestForSpec(t *testing.T, workDir, specPath, serverPath, clientPath stri
 	for test, pass := range clientResult {
 		if !pass {
 			allPassed = false
-			t.Logf("%s TEST FAILED: Test %s did not pass", t.Name(), test)
+			t.Logf("%s TEST GO-SDK FAILED: Test %s did not pass", t.Name(), test)
 		} else {
-			t.Logf("%s TEST PASSED: Test %s passed", t.Name(), test)
+			t.Logf("%s TEST GO-SDK PASSED: Test %s passed", t.Name(), test)
 		}
 	}
 
 	if allPassed {
-		t.Logf("%s TEST PASSED", t.Name())
+		t.Logf("%s TEST GO-SDK PASSED", t.Name())
 	} else {
-		t.Logf("%s TEST FAILED: Some tests did not pass", t.Name())
+		t.Logf("%s TEST GO-SDK FAILED: Some tests did not pass", t.Name())
 		t.FailNow()
 	}
+
+	// TODO: ADD TESTS FOR TS CLIENT (SDK)
 }
 
 func generateTestServerHelpers(t *testing.T, dir, specPath string) {
 	t.Logf("Generating server helpers from spec: %s", specPath)
 
-	if err := runCommand(t, dir, "go", "run", ".", "--config", specPath); err != nil {
+	// Build napiway binary first
+	t.Log("Building napiway binary...")
+	if err := runCommand(t, dir, "go", "build", "-o", "napiway_binary", "."); err != nil {
+		t.Logf("Failed to build napiway binary: %v", err)
+		os.Exit(1)
+	}
+
+	t.Log("Running napiway to generate server helpers...")
+
+	if err := runCommand(t, dir, "./napiway_binary", "--config", specPath); err != nil {
 		t.Logf("Failed to generate server helpers: %v", err)
 		os.Exit(1)
 	}
@@ -126,6 +122,7 @@ func runCommand(t *testing.T, workDir, name string, args ...string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("Failed to run command %s %v: %v", name, args, err)
 	}
+	t.Logf("\n-\n")
 	return nil
 }
 
@@ -139,6 +136,7 @@ func runCommandForOutput(t *testing.T, workDir, name string, args ...string) (st
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("Failed to run command %s %v: %v", name, args, err)
 	}
+	t.Logf("\n-\n")
 	return out.String(), nil
 }
 
