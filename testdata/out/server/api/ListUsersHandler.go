@@ -106,6 +106,14 @@ func NewListUsersRequest(w http.ResponseWriter, r *http.Request) (req ListUsersR
 
 type ListUsers200Response struct {
 
+	// Destination: header "X-RateLimit-Remaining"
+	//
+
+	// The number of remaining requests allowed in the current rate limit window.
+	//
+	// Required
+	RateLimitRemaining float64
+
 	// Response body
 	Body ListUsers200ResponseBody
 }
@@ -177,6 +185,8 @@ type ListUsers200ResponseBody struct {
 // w.WriteHeader() are made before calling this function.
 func WriteListUsers200Response(w http.ResponseWriter, response ListUsers200Response) error {
 	// Set headers, if any
+
+	w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%v", response.RateLimitRemaining))
 
 	// Set Content-Type
 	w.Header().Set("Content-Type", "application/json")

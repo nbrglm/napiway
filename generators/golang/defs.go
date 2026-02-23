@@ -155,6 +155,13 @@ type GoFieldDef struct {
 	//
 	// If it is a []string, i.e an array of strings, this means the array elements must be non-empty strings.
 	NonEmpty bool
+
+	// For object type, whether the object is free-form, i.e., it can have any properties with any types. If this is true, the template will treat this as map[string]any in Go.
+	//
+	// This will make the template NOT generate a struct or a validation function for this field.
+	//
+	// Only applicable for object types. The template assumes this is only true for object types.
+	FreeForm bool
 }
 
 // Definition of a parameter (header, query, path) in Go

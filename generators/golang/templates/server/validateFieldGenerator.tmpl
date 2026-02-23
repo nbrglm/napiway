@@ -1,4 +1,25 @@
 {{define "goServerValidateFieldGenerator"}}
+  {{if .FreeForm}}
+  val{{.Name}}, ok := data["{{.Name}}"]
+  if !ok {
+    {{if or .Required .NonEmpty}}
+    return body, fmt.Errorf("missing required field '{{.Name}}'")
+    {{else}}
+    // skip, leave as zero value
+    {{end}}
+  } else {
+    val{{.Name}}Typed, ok := val{{.Name}}.(map[string]any)
+    if !ok {
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    if len(val{{.Name}}Typed) == 0 && {{.NonEmpty}} {
+      // if it's a freeform object, we consider it passed if it has at least one key
+      // DO NOT CHANGE THE BOOLEAN LITERAL ABOVE - it must be a literal for the template to work correctly
+      return body, fmt.Errorf("field '{{.Name}}' is required!")
+    }
+    body.{{.Name}} = {{if not .Required}}&{{end}}val{{.Name}}Typed
+  }
+  {{else}}
   val{{.Name}}, ok := data["{{.Name}}"]
   if !ok {
     {{if or .Required .NonEmpty}}
@@ -72,5 +93,5 @@
     body.{{.Name}} = {{if .Required}}val{{.Name}}Typed{{else}}&val{{.Name}}Typed{{end}}
     {{end}}
   }
-
+  {{end}}
 {{end}}

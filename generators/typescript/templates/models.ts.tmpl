@@ -116,18 +116,8 @@ export async function New{{.Name}}(resp: Response): Promise<{{.Name}}> {
   var result = {} as {{.Name}};
 
   {{range .Headers}}
-  header{{.Name}} = resp.headers.get("{{.TransportName}}");
-  {{if .Required}}
-  if (!header{{.Name}}) {
-    throw new {{$clientName}}Error({{$clientName}}ErrorReasonDecodeError, "Missing required response header: {{.TransportName}}");
-  } else {
-    result.{{.Name}} = header{{.Name}};
-  }
-  {{else}}
-  if (header{{.Name}}) {
-    result.{{.Name}} = header{{.Name}};
-  }
-  {{end}}
+  var header{{.Name}} = resp.headers.get("{{.TransportName}}");
+  result.{{.Name}} = parse{{.Type}}Param(header{{.Name}}, "header: {{.TransportName}}", {{.Required}}){{if .Required}}!{{end}};
   {{end}}
 
   {{if .ResponseBodyName}}
@@ -142,4 +132,44 @@ export async function New{{.Name}}(resp: Response): Promise<{{.Name}}> {
 }
 {{end}}
 {{end}}
+
+function parsenumberParam(value: string | null, name: string, required: boolean): number | undefined {
+  if (required && (value === null || value.trim() === "")) {
+    throw new Error(`Missing required number parameter: ${name}`);
+  }
+  if (value === null || value.trim() === "") {
+    return undefined; // return default value
+  }
+  const parsed = Number(value);
+  if (isNaN(parsed)) {
+    throw new Error(`Failed to parse number parameter: ${value}`);
+  }
+  return parsed;
+}
+
+function parsebooleanParam(value: string | null, name: string, required: boolean): boolean | undefined {
+  if (required && (value === null || value.trim() === "")) {
+    throw new Error(`Missing required boolean parameter: ${name}`);
+  }
+  if (value === null || value.trim() === "") {
+    return undefined; // return default value
+  }
+  if (value.toLowerCase() === "true") {
+    return true;
+  } else if (value.toLowerCase() === "false") {
+    return false;
+  } else {
+    throw new Error(`Failed to parse boolean parameter: ${value}`);
+  }
+}
+
+function parsestringParam(value: string | null, name: string, required: boolean): string | undefined {
+  if (required && (value === null || value.trim() === "")) {
+    throw new Error(`Missing required string parameter: ${name}`);
+  }
+  if (value === null || value.trim() === "") {
+    return undefined; // return default value
+  }
+  return value;
+}
 {{end}}

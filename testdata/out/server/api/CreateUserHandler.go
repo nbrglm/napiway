@@ -30,6 +30,12 @@ type CreateUserRequestBody struct {
 	//
 	Age *float64 `json:"Age,omitempty"`
 
+	// An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator. This is returned by the server in the response body.
+	//
+	// Optional
+	//
+	ArbitraryData *map[string]any `json:"ArbitraryData,omitempty"`
+
 	// The email address of the user to be created.
 	//
 	// Required
@@ -83,6 +89,24 @@ func NewCreateUserRequestBody(data map[string]any) (CreateUserRequestBody, error
 
 		body.Age = &valAgeTyped
 
+	}
+
+	valArbitraryData, ok := data["ArbitraryData"]
+	if !ok {
+
+		// skip, leave as zero value
+
+	} else {
+		valArbitraryDataTyped, ok := valArbitraryData.(map[string]any)
+		if !ok {
+			return body, fmt.Errorf("field 'ArbitraryData' has incorrect type")
+		}
+		if len(valArbitraryDataTyped) == 0 && false {
+			// if it's a freeform object, we consider it passed if it has at least one key
+			// DO NOT CHANGE THE BOOLEAN LITERAL ABOVE - it must be a literal for the template to work correctly
+			return body, fmt.Errorf("field 'ArbitraryData' is required!")
+		}
+		body.ArbitraryData = &valArbitraryDataTyped
 	}
 
 	valEmail, ok := data["Email"]
@@ -224,6 +248,12 @@ type CreateUser201ResponseBodyUser struct {
 }
 
 type CreateUser201ResponseBody struct {
+
+	// An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator.
+	//
+	// Optional
+	//
+	ArbitraryData *map[string]any `json:"ArbitraryData,omitempty"`
 
 	// Response Schema for GetUser endpoint.
 	//

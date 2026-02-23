@@ -75,20 +75,20 @@ func runTestForSpec(t *testing.T, workDir, specPath, serverPath, clientPath, tsC
 	}
 
 	allPassed := true
+	countNotPassed := 0
 
 	for test, pass := range clientResult {
 		if !pass {
 			allPassed = false
+			countNotPassed++
 			t.Logf("%s TEST GO-SDK FAILED: Test %s did not pass", t.Name(), test)
-		} else {
-			t.Logf("%s TEST GO-SDK PASSED: Test %s passed", t.Name(), test)
 		}
 	}
 
 	if allPassed {
 		t.Logf("%s TEST GO-SDK PASSED", t.Name())
 	} else {
-		t.Logf("%s TEST GO-SDK FAILED: Some tests did not pass", t.Name())
+		t.Logf("%s TEST GO-SDK FAILED: Some (%d) tests did not pass", t.Name(), countNotPassed)
 		t.FailNow()
 	}
 

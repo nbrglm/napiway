@@ -73,6 +73,13 @@ export type CreateUserRequestBody = {
   Age: number | null;
 
   /**
+  * An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator. This is returned by the server in the response body.
+  * Optional
+  * 
+  */
+  ArbitraryData: Record<string, any> | null;
+
+  /**
   * The email address of the user to be created.
   * Required
   *  Must be non-empty
@@ -155,6 +162,9 @@ function ValidateCreateUserRequestBody(o: CreateUserRequestBody) : TestingAPIErr
   
   
   
+  
+  
+  
   if (o.Email.trim() === "") {
     throw new Error("Field 'Email' must be non-empty");
   }
@@ -183,7 +193,9 @@ export type CreateUser201Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: CreateUser201ResponseBody;
   
 }
@@ -234,6 +246,13 @@ export type CreateUser201ResponseBodyUser = {
 export type CreateUser201ResponseBody = {
   
   /**
+  * An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator.
+  * Optional
+  * 
+  */
+  ArbitraryData: Record<string, any> | null;
+
+  /**
   * Response Schema for GetUser endpoint.
   * Required
   * 
@@ -266,7 +285,9 @@ export type CreateUser400Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: CreateUser400ResponseBody;
   
 }
@@ -328,7 +349,9 @@ export type CreateUser500Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: CreateUser500ResponseBody;
   
 }
@@ -480,7 +503,9 @@ export type GetUser200Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: GetUser200ResponseBody;
   
 }
@@ -563,7 +588,9 @@ export type GetUser400Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: GetUser400ResponseBody;
   
 }
@@ -625,7 +652,9 @@ export type GetUser404Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: GetUser404ResponseBody;
   
 }
@@ -687,7 +716,9 @@ export type GetUser500Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: GetUser500ResponseBody;
   
 }
@@ -787,7 +818,9 @@ export type HealthCheck200Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: HealthCheck200ResponseBody;
   
 }
@@ -927,9 +960,23 @@ export function ValidateListUsersRequest(req: ListUsersRequest) : TestingAPIErro
 
 export type ListUsers200Response = {
   
+  /**
+   * Destination: header "X-RateLimit-Remaining"
+   *
+  
+  * The number of remaining requests allowed in the current rate limit window.
+  * 
+  * Required
+  */
+  RateLimitRemaining: number;
+
 
   
-  // Response body
+
+  
+  /**
+   * Response body
+   */
   Body: ListUsers200ResponseBody;
   
 }
@@ -1016,6 +1063,9 @@ export async function NewListUsers200Response(resp: Response): Promise<ListUsers
   var result = {} as ListUsers200Response;
 
   
+  var headerRateLimitRemaining = resp.headers.get("X-RateLimit-Remaining");
+  result.RateLimitRemaining = parsenumberParam(headerRateLimitRemaining, "header: X-RateLimit-Remaining", true)!;
+  
 
   
   try {
@@ -1033,7 +1083,9 @@ export type ListUsers400Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: ListUsers400ResponseBody;
   
 }
@@ -1095,7 +1147,9 @@ export type ListUsers500Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: ListUsers500ResponseBody;
   
 }
@@ -1258,7 +1312,9 @@ export type LogoutUser200Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: LogoutUser200ResponseBody;
   
 }
@@ -1300,7 +1356,9 @@ export type LogoutUser400Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: LogoutUser400ResponseBody;
   
 }
@@ -1362,7 +1420,9 @@ export type LogoutUser500Response = {
   
 
   
-  // Response body
+  /**
+   * Response body
+   */
   Body: LogoutUser500ResponseBody;
   
 }
@@ -1420,3 +1480,43 @@ export async function NewLogoutUser500Response(resp: Response): Promise<LogoutUs
 }
 
 
+
+function parsenumberParam(value: string | null, name: string, required: boolean): number | undefined {
+  if (required && (value === null || value.trim() === "")) {
+    throw new Error(`Missing required number parameter: ${name}`);
+  }
+  if (value === null || value.trim() === "") {
+    return undefined; // return default value
+  }
+  const parsed = Number(value);
+  if (isNaN(parsed)) {
+    throw new Error(`Failed to parse number parameter: ${value}`);
+  }
+  return parsed;
+}
+
+function parsebooleanParam(value: string | null, name: string, required: boolean): boolean | undefined {
+  if (required && (value === null || value.trim() === "")) {
+    throw new Error(`Missing required boolean parameter: ${name}`);
+  }
+  if (value === null || value.trim() === "") {
+    return undefined; // return default value
+  }
+  if (value.toLowerCase() === "true") {
+    return true;
+  } else if (value.toLowerCase() === "false") {
+    return false;
+  } else {
+    throw new Error(`Failed to parse boolean parameter: ${value}`);
+  }
+}
+
+function parsestringParam(value: string | null, name: string, required: boolean): string | undefined {
+  if (required && (value === null || value.trim() === "")) {
+    throw new Error(`Missing required string parameter: ${name}`);
+  }
+  if (value === null || value.trim() === "") {
+    return undefined; // return default value
+  }
+  return value;
+}

@@ -288,9 +288,11 @@ func collectTypes(parentName, fieldName string, field *spec.Field, types *[]TsTy
 
 		switch prop.Type {
 		case spec.FieldTypeObject:
-			collectTypes(typeName, exportedName(propName), &prop, types)
+			if !prop.FreeForm {
+				collectTypes(typeName, exportedName(propName), &prop, types)
+			}
 		case spec.FieldTypeArray:
-			if prop.Items != nil && prop.Items.Type == spec.FieldTypeObject {
+			if prop.Items != nil && prop.Items.Type == spec.FieldTypeObject && !prop.Items.FreeForm {
 				collectTypes(typeName, exportedName(propName)+"Item", prop.Items, types)
 			}
 		}
@@ -307,6 +309,9 @@ func tsTypeFromSpecField(field spec.Field, parentName string) (typ string, shoul
 	case spec.FieldTypeBoolean:
 		return "boolean", false
 	case spec.FieldTypeObject:
+		if field.FreeForm {
+			return "Record<string, any>", false
+		}
 		return exportedName(parentName), true
 	case spec.FieldTypeArray:
 		elemType, elemRecurse := tsTypeFromSpecField(*field.Items, parentName+"Item")

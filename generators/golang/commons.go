@@ -192,6 +192,7 @@ func collectStructs(parentName string, fieldName string, field *spec.Field, out 
 			ElemGoType:      goTypeElem,
 			Required:        prop.Required,
 			NonEmpty:        prop.NonEmpty,
+			FreeForm:        prop.FreeForm,
 		}
 
 		structDef.Fields = append(structDef.Fields, fieldDef)
@@ -199,10 +200,12 @@ func collectStructs(parentName string, fieldName string, field *spec.Field, out 
 		// Recursively collect nested structs
 		switch prop.Type {
 		case spec.FieldTypeObject:
-			collectStructs(structName, propName, &prop, out)
+			if !prop.FreeForm {
+				collectStructs(structName, propName, &prop, out)
+			}
 		case spec.FieldTypeArray:
 			// If the property is an array, check if the items are objects
-			if prop.Items != nil && prop.Items.Type == spec.FieldTypeObject {
+			if prop.Items != nil && prop.Items.Type == spec.FieldTypeObject && !prop.Items.FreeForm {
 				collectStructs(structName, propName+"Item", prop.Items, out)
 			}
 		}
@@ -224,6 +227,10 @@ func goTypeFromSpecField(field spec.Field, parentName string) (typ string, shoul
 	case spec.FieldTypeBoolean:
 		return "bool", false
 	case spec.FieldTypeObject:
+		if field.FreeForm {
+			// If properties is nil, treat it as an unknown payload (map[string]any in Go).
+			return "map[string]any", false
+		}
 		return exportedName(parentName), true
 	case spec.FieldTypeArray:
 		elemType, elemRecurse := goTypeFromSpecField(*field.Items, parentName+"Item")

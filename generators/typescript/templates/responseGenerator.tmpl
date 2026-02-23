@@ -1,14 +1,17 @@
 {{define "responseGenerator"}}
 export type {{.Name}} = {
   {{range .Headers}}
-  // Destination: header "{{.TransportName}}"
-  //
+  /**
+   * Destination: header "{{.TransportName}}"
+   *
   {{template "paramGenerator" .}}
 
   {{end}}
 
   {{if .ResponseBodyName}}
-  // Response body
+  /**
+   * Response body
+   */
   Body: {{.ResponseBodyName}};
   {{end}}
 }

@@ -307,6 +307,7 @@ func handleCreateUser(w http.ResponseWriter, r *http.Request) {
 				IsActive: user.IsActive,
 				Age:      user.Age,
 			},
+			ArbitraryData: req.Body.ArbitraryData,
 		},
 	})
 }

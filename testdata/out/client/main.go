@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"reflect"
 	"strings"
@@ -354,6 +355,7 @@ func testGetUser(ctx context.Context, api *sdk.TestingAPI) (result GetUserResult
 type CreateUserResult struct {
 	ValidOperationWithOptionalFieldsMissing bool
 	ValidOperationWithOptionalFieldPresent  bool
+	ValidOperationWithArbitraryData         bool
 }
 
 func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (result CreateUserResult, err error) {
@@ -390,6 +392,34 @@ func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (result CreateUser
 	}
 	if resOptionalFieldPresent.StatusCode == 201 && resOptionalFieldPresent.Response201.Body.User.Email == "test@example.com" {
 		result.ValidOperationWithOptionalFieldPresent = true
+	}
+
+	arbitraryDataSent := map[string]any{
+		"key1": "value1",
+		"key2": 123.0,
+		"key3": true,
+	}
+
+	resWithArbitraryData, err := api.CreateUser(ctx, sdk.CreateUserRequest{
+		Auth: sdk.CreateUserRequestAuthParams{
+			APIKey:     &VALID_API_KEY,
+			AdminToken: &VALID_ADMIN_TOKEN,
+		},
+		Body: sdk.CreateUserRequestBody{
+			Age:           &AGE,
+			Email:         "test@example.com",
+			UserName:      "Test User",
+			ArbitraryData: &arbitraryDataSent,
+		},
+	})
+
+	if err != nil {
+		return result, err
+	}
+	if resWithArbitraryData.StatusCode == 201 && resWithArbitraryData.Response201.Body.User.Email == "test@example.com" {
+		if resWithArbitraryData.Response201.Body.ArbitraryData != nil && maps.Equal(arbitraryDataSent, *resWithArbitraryData.Response201.Body.ArbitraryData) {
+			result.ValidOperationWithArbitraryData = true
+		}
 	}
 
 	return result, nil

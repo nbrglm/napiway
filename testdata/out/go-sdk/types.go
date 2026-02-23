@@ -52,6 +52,12 @@ type CreateUserRequestBody struct {
 	//
 	Age *float64 `json:"Age,omitempty"`
 
+	// An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator. This is returned by the server in the response body.
+	//
+	// Optional
+	//
+	ArbitraryData *map[string]any `json:"ArbitraryData,omitempty"`
+
 	// The email address of the user to be created.
 	//
 	// Required
@@ -163,6 +169,12 @@ type CreateUser201ResponseBodyUser struct {
 }
 
 type CreateUser201ResponseBody struct {
+
+	// An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator.
+	//
+	// Optional
+	//
+	ArbitraryData *map[string]any `json:"ArbitraryData,omitempty"`
 
 	// Response Schema for GetUser endpoint.
 	//
@@ -626,6 +638,14 @@ func (req *ListUsersRequest) Validate() error {
 
 type ListUsers200Response struct {
 
+	// Destination: header "X-RateLimit-Remaining"
+	//
+
+	// The number of remaining requests allowed in the current rate limit window.
+	//
+	// Required
+	RateLimitRemaining float64
+
 	// Response body
 	Body ListUsers200ResponseBody
 }
@@ -694,6 +714,13 @@ type ListUsers200ResponseBody struct {
 func NewListUsers200Response(resp *http.Response) (ListUsers200Response, error) {
 	defer resp.Body.Close()
 	result := ListUsers200Response{}
+
+	headerRateLimitRemaining, err := parsefloat64Param(resp.Header.Get("X-RateLimit-Remaining"), "header: X-RateLimit-Remaining", true)
+	if err != nil {
+		return result, err
+	}
+
+	result.RateLimitRemaining = *headerRateLimitRemaining
 
 	decoder := json.NewDecoder(resp.Body)
 	if err := decoder.Decode(&result.Body); err != nil {

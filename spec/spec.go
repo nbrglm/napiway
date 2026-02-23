@@ -174,6 +174,9 @@ func (t *TsSDKGeneration) Validate() error {
 }
 
 type Specification struct {
+	// This is used in documentation.
+	Name string `yaml:"name"`
+	// This is used as the main identifier for the API, and will be used in code generation.
 	ApiName     string `yaml:"apiName"`
 	Version     string `yaml:"version"`
 	Description string `yaml:"description"`
@@ -487,6 +490,11 @@ type Field struct {
 	//
 	// If it is a []string, i.e an array of strings, this means the array elements must be non-empty strings.
 	NonEmpty bool `yaml:"nonEmpty,omitempty"`
+
+	// For object type, whether the object is free-form, i.e., it can have any properties with any types. Mutually exclusive with `properties`.
+	//
+	// If true, the object can have any properties with any types. This will be treated as map[string]any in Go, Record<string, unknown> in TypeScript.
+	FreeForm bool `yaml:"freeForm,omitempty"`
 }
 
 func (f *Field) Validate() error {
@@ -506,18 +514,29 @@ func (f *Field) Validate() error {
 		}
 	}
 
+	if f.FreeForm && f.Type != FieldTypeObject {
+		return fmt.Errorf("freeForm is only applicable for object type, not for type %s", f.Type)
+	}
+
+	if f.FreeForm && f.Properties != nil {
+		return fmt.Errorf("properties cannot be specified when freeForm is true")
+	}
+
 	switch f.Type {
 	case FieldTypeString, FieldTypeNumber, FieldTypeBoolean:
 		if len(f.Properties) != 0 || f.Items != nil {
 			return fmt.Errorf("properties and items are not applicable for type %s", f.Type)
 		}
 	case FieldTypeObject:
-		if len(f.Properties) == 0 {
-			return fmt.Errorf("properties is required for object type")
+		// If properties is nil, it is still valid as this will be treated as an unknown payload (map[string]any in Go, Record<string, unknown> in TypeScript).
+		if f.Properties == nil && !f.FreeForm {
+			return fmt.Errorf("properties is required for object type unless freeForm is true")
 		}
-		for name, prop := range f.Properties {
-			if err := prop.Validate(); err != nil {
-				return fmt.Errorf("property %s: %w", name, err)
+		if f.Properties != nil {
+			for name, prop := range f.Properties {
+				if err := prop.Validate(); err != nil {
+					return fmt.Errorf("property %s: %w", name, err)
+				}
 			}
 		}
 	case FieldTypeArray:

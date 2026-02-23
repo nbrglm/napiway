@@ -67,7 +67,8 @@ components:
           description: A detailed debug message for developers. Only passed if in debug mode.
 
 spec:
-  apiName: Testing API
+  name: Testing API
+  apiName: TestingAPI
   version: "1.0.0"
   description: Spec for testing various features of the NApiWay Generator.
   website: https://github.com/nbrglm/napiway
@@ -132,12 +133,20 @@ spec:
             type: number
             required: false
             description: The age of the user to be created.
+          ArbitraryData:
+            type: object
+            freeForm: true
+            description: An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator. This is returned by the server in the response body.
       responses:
         201:
           description: Successful response containing the created user information.
           body:
             properties:
               User: *userSchema
+              ArbitraryData:
+                type: object
+                freeForm: true
+                description: An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator.
         400:
           description: Bad Request
           body:
@@ -216,6 +225,12 @@ spec:
       responses:
         200:
           description: Successful response containing a list of users.
+          headers:
+            - name: RateLimitRemaining
+              transportName: X-RateLimit-Remaining
+              type: number
+              required: true
+              description: The number of remaining requests allowed in the current rate limit window.
           body:
             properties:
               Users:
