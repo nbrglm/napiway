@@ -31,14 +31,22 @@ func GenerateServerHelpers(cfg spec.GoServerGeneration, api spec.Specification) 
 			// handle error
 			return fmt.Errorf("failed to generate handler for %s: %w", endpointName, err)
 		}
-		content, err = formatWithImports(content)
-		if err != nil {
-			return fmt.Errorf("failed to format handler file %s: %w", filePath, err)
+
+		// Store the formatting error but write the file regardless.
+		formattedContent, formatErr := formatWithImports(content)
+		if formatErr == nil {
+			content = formattedContent
 		}
+		// fail back to unformatted content if formatting fails, but still write the file to ensure the generated code is not lost
 		err = utils.WriteFile(filePath, content)
 		if err != nil {
 			// handle error
 			return fmt.Errorf("failed to write file %s: %w", filePath, err)
+		}
+		// handle formatting error after writing the file to ensure the file is created even if formatting fails
+		// Helps in debugging issues without losing the generated code
+		if formatErr != nil {
+			return fmt.Errorf("failed to format handler file %s: %w", filePath, formatErr)
 		}
 	}
 

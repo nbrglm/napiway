@@ -30,13 +30,16 @@ func GenerateGoSDK(cfg spec.GoSDKGeneration, api spec.Specification) error {
 	if err != nil {
 		return err
 	}
-	clientFileContent, err = formatWithImports(clientFileContent)
-	if err != nil {
-		return err
+	clientFileContentFormatted, clientFileFormatErr := formatWithImports(clientFileContent)
+	if clientFileFormatErr == nil {
+		clientFileContent = clientFileContentFormatted
 	}
 	err = utils.WriteFile(clientFilePath, clientFileContent)
 	if err != nil {
 		return err
+	}
+	if clientFileFormatErr != nil {
+		return clientFileFormatErr
 	}
 
 	// types file
@@ -46,14 +49,17 @@ func GenerateGoSDK(cfg spec.GoSDKGeneration, api spec.Specification) error {
 		// handle error
 		return err
 	}
-	typesFileContent, err = formatWithImports(typesFileContent)
-	if err != nil {
-		return err
+	typesFileContentFormatted, typesFileFormatErr := formatWithImports(typesFileContent)
+	if typesFileFormatErr == nil {
+		typesFileContent = typesFileContentFormatted
 	}
 	err = utils.WriteFile(typesFilePath, typesFileContent)
 	if err != nil {
 		// handle error
 		return err
+	}
+	if typesFileFormatErr != nil {
+		return typesFileFormatErr
 	}
 
 	// helpers file
