@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var TestingAPIVersion = "1.0.0"
+
 func parsefloat64Param(param string, paramName string, required bool) (*float64, error) {
 	param = strings.TrimSpace(param)
 	if param == "" {

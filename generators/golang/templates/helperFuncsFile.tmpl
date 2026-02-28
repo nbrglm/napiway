@@ -7,6 +7,8 @@ import (
   "strings"
 )
 
+var {{.ClientName}}Version = "{{.Version}}"
+
 func parsefloat64Param(param string, paramName string, required bool) (*float64, error) {
   param = strings.TrimSpace(param)
   if param == "" {

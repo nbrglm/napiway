@@ -12,7 +12,7 @@ import (
 	"golang.org/x/tools/imports"
 )
 
-func generateGoHelperFuncsFile(packageName string) ([]byte, error) {
+func generateGoHelperFuncsFile(packageName, clientName, version string) ([]byte, error) {
 	var buf bytes.Buffer
 	tmpl, err := template.ParseFS(goTemplates, "templates/helperFuncsFile.tmpl")
 	if err != nil {
@@ -21,6 +21,8 @@ func generateGoHelperFuncsFile(packageName string) ([]byte, error) {
 
 	err = tmpl.ExecuteTemplate(&buf, "goHelperFuncsFile", map[string]string{
 		"PackageName": packageName,
+		"ClientName":  clientName,
+		"Version":     version,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute helper funcs template: %w", err)

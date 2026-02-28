@@ -50,7 +50,7 @@ func GenerateServerHelpers(cfg spec.GoServerGeneration, api spec.Specification) 
 		}
 	}
 
-	helpersFileContent, err := generateGoHelperFuncsFile(cfg.PackageName)
+	helpersFileContent, err := generateGoHelperFuncsFile(cfg.PackageName, api.ApiName, api.Version)
 	if err != nil {
 		return fmt.Errorf("failed to generate helper funcs file: %w", err)
 	}

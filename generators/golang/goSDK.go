@@ -63,7 +63,7 @@ func GenerateGoSDK(cfg spec.GoSDKGeneration, api spec.Specification) error {
 	}
 
 	// helpers file
-	helpersFileContent, err := generateGoHelperFuncsFile(packageName)
+	helpersFileContent, err := generateGoHelperFuncsFile(packageName, fileData.ClientName, api.Version)
 	if err != nil {
 		return fmt.Errorf("failed to generate helper funcs file: %w", err)
 	}

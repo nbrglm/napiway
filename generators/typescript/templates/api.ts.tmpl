@@ -3,6 +3,8 @@
 import { {{$clientName}}Error } from "./models";
 import * as Models from "./models";
 
+export const {{$clientName}}Version = "{{.ClientVersion}}";
+
 export class {{.ClientName}} {
   private baseURL: string;
   private headers: Record<string, string>;
@@ -72,7 +74,7 @@ export class {{.ClientName}} {
 }
 
 {{range .Endpoints}}
-type {{.Name}}Result = {
+export type {{.Name}}Result = {
   StatusCode: number;
   {{range .Responses}}
   Response{{.StatusCode}}: Models.{{.Name}};
@@ -81,7 +83,7 @@ type {{.Name}}Result = {
 }
 {{end}}
 
-type UnknownStatusResponse = {
+export type UnknownStatusResponse = {
   StatusCode: number;
   Resp: Response;
 }
