@@ -218,6 +218,11 @@ type GoSDKGeneration struct {
 	//
 	// E.g. "github.com/username/project/sdk"
 	ModuleName string `yaml:"moduleName"`
+
+	// Specify a file which holds the license for the generated sdk
+	//
+	// If not specified, the generator will not add a LICENSE file.
+	LicenseFile *string `yaml:"licenseFile,omitempty"`
 }
 
 func (g *GoSDKGeneration) Validate() error {
@@ -272,6 +277,11 @@ type TsSDKGeneration struct {
 
 	// Keywords for the SDK (package.json keywords field)
 	Keywords []string `yaml:"keywords,omitempty"`
+
+	// Specify a file which holds the license for the generated sdk
+	//
+	// If not specified, the generator will not add a LICENSE file.
+	LicenseFile *string `yaml:"licenseFile,omitempty"`
 }
 
 func (t *TsSDKGeneration) Validate() error {

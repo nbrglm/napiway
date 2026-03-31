@@ -5,6 +5,7 @@ goServer:
 goSdk:
   outputDir: ./out/go-sdk
   moduleName: github.com/nbrglm/napiway/testdata/out/go_sdk
+  licenseFile: ../LICENSE
 
 tsSdk:
   outputDir: ./out/ts-sdk
@@ -20,6 +21,7 @@ tsSdk:
     - Testing API
     - NApiWay
     - Code Generation
+  licenseFile: ../LICENSE
 
 schemas:
   - name: HealthCheckResponseBody

@@ -2,6 +2,7 @@ package golang
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -78,6 +79,20 @@ func GenerateGoSDK(cfg *spec.GoSDKGeneration, config *spec.Config) error {
 	if formatErr != nil {
 		return fmt.Errorf("failed to format client file %s: %w", clientFilePath, formatErr)
 	}
+
+	// Write the License File, if any is provided
+	if cfg.LicenseFile != nil {
+		licenseFilePath := filepath.Join(cfg.OutputDir, "LICENSE")
+		bytes, err := os.ReadFile(*cfg.LicenseFile)
+		if err != nil {
+			return fmt.Errorf("Error reading provided go sdk license file %s: %w", *cfg.LicenseFile, err)
+		}
+		err = utils.WriteFile(licenseFilePath, bytes)
+		if err != nil {
+			return fmt.Errorf("Error writing go sdk license file %s: %w", licenseFilePath, err)
+		}
+	}
+
 	if err := runGoModTidy(cfg.OutputDir); err != nil {
 		return err
 	}

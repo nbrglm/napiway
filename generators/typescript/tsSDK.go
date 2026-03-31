@@ -3,7 +3,9 @@ package typescript
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -92,6 +94,19 @@ func GenerateTSSDK(genCfg spec.TsSDKGeneration, config *spec.Config) (err error)
 	err = utils.ExecCommand("npm run build", genCfg.OutputDir)
 	if err != nil {
 		return err
+	}
+
+	// copy license file if specified
+	if genCfg.LicenseFile != nil {
+		licenseFilePath := filepath.Join(genCfg.OutputDir, "LICENSE")
+		bytes, err := os.ReadFile(*genCfg.LicenseFile)
+		if err != nil {
+			return fmt.Errorf("Error reading provided ts sdk license file %s: %w", *genCfg.LicenseFile, err)
+		}
+		err = utils.WriteFile(licenseFilePath, bytes)
+		if err != nil {
+			return fmt.Errorf("Error writing ts sdk license file %s: %w", licenseFilePath, err)
+		}
 	}
 	return nil
 }
