@@ -202,6 +202,12 @@ func testGoSDKClient(t *testing.T, clientPath string) {
 }
 
 func testTsSDKClient(t *testing.T, clientPath string) {
+	err := runCommand(t, clientPath, "npm", "i")
+	if err != nil {
+		t.Logf("%s TEST FAILED: Failed to run `npm i` for ts client: %v", t.Name(), err)
+		os.Exit(1)
+	}
+
 	output, err := runCommandForOutput(t, clientPath, "npm", "run", "test-client", "--", httpServerURL)
 	if err != nil {
 		t.Logf("%s TEST FAILED: Failed to run generated TS client: %v", t.Name(), err)
