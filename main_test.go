@@ -159,6 +159,14 @@ func waitForServerStartup(t *testing.T, url string) {
 }
 
 func testGoSDKClient(t *testing.T, clientPath string) {
+	t.Logf("Running `go mod tidy` for go sdk client...")
+
+	err := runCommand(t, clientPath, "go", "mod", "tidy")
+	if err != nil {
+		t.Logf("%s TEST FAILED: Failed to run `go mod tidy` for go client: %v", t.Name(), err)
+		os.Exit(1)
+	}
+
 	output, err := runCommandForOutput(t, clientPath, "go", "run", ".", httpServerURL)
 	if err != nil {
 		t.Logf("%s TEST FAILED: Failed to run generated go client: %v", t.Name(), err)
