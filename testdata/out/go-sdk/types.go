@@ -1,48 +1,9 @@
 package go_sdk
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 )
-
-type TestingAPIErrorReason string
-
-const (
-	TestingAPIErrorReasonInvalidRequest TestingAPIErrorReason = "invalid_request"
-	TestingAPIErrorReasonDecodeError    TestingAPIErrorReason = "decode_error"
-	TestingAPIErrorReasonNetworkError   TestingAPIErrorReason = "network_error"
-	TestingAPIErrorReasonOtherError     TestingAPIErrorReason = "other_error"
-)
-
-type TestingAPIError struct {
-	Reason  TestingAPIErrorReason
-	Message string
-	Err     error
-}
-
-func (e *TestingAPIError) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("%s: %s: %v", e.Reason, e.Message, e.Err)
-	}
-	return fmt.Sprintf("%s: %s", e.Reason, e.Message)
-}
-
-const (
-	CreateUserRequestHTTPMethod = "POST"
-	CreateUserRequestRoutePath  = "/users/new"
-)
-
-// Create a new user in the system.
-type CreateUserRequest struct {
-
-	// Authentication parameters
-	Auth CreateUserRequestAuthParams
-
-	// Request body
-	Body CreateUserRequestBody
-}
 
 type CreateUserRequestBody struct {
 
@@ -50,7 +11,7 @@ type CreateUserRequestBody struct {
 	//
 	// Optional
 	//
-	Age *float64 `json:"Age,omitempty"`
+	Age *int64 `json:"Age,omitempty"`
 
 	// An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator. This is returned by the server in the response body.
 	//
@@ -73,102 +34,119 @@ type CreateUserRequestBody struct {
 	UserName string `json:"UserName"`
 }
 
-type CreateUserRequestAuthParams struct {
+// NewCreateUserRequestBody creates a new instance of CreateUserRequestBody with required fields as parameters
+func NewCreateUserRequestBody(
 
-	// Required Authentication Method
-	// Source: header "X-App-API-Key"
-	//
-	// Authentication method that denotes an API key passed in the request header.
-	//
-	// Format (NOT ENFORCED): api_key
-	//
-	APIKey *string
+	Email string,
 
-	// Required Authentication Method
-	// Source: header "X-App-Admin-Token"
-	//
-	// Authentication method that denotes an admin token passed in the request header.
-	//
-	// Format (NOT ENFORCED): admin_token
-	//
-	AdminToken *string
+	UserName string,
+
+) *CreateUserRequestBody {
+	return &CreateUserRequestBody{
+
+		Email: Email,
+
+		UserName: UserName,
+	}
 }
 
-func (req *CreateUserRequest) Validate() error {
-
-	if err := req.Body.Validate(); err != nil {
-		return err
-	}
-	// Authentication parameters validation
-
-	// Validate required auth parameters
-
-	if req.Auth.APIKey == nil {
-		return fmt.Errorf("missing required authentication parameter: X-App-API-Key")
-	}
-	if req.Auth.AdminToken == nil {
-		return fmt.Errorf("missing required authentication parameter: X-App-Admin-Token")
-	}
-
-	return nil
+// WithAge sets the optional field Age and returns the modified CreateUserRequestBody instance
+func (o *CreateUserRequestBody) WithAge(value *int64) *CreateUserRequestBody {
+	o.Age = value
+	return o
 }
 
-func (o *CreateUserRequestBody) Validate() error {
+// WithArbitraryData sets the optional field ArbitraryData and returns the modified CreateUserRequestBody instance
+func (o *CreateUserRequestBody) WithArbitraryData(value *map[string]any) *CreateUserRequestBody {
+	o.ArbitraryData = value
+	return o
+}
 
-	if strings.TrimSpace(o.Email) == "" {
-		return fmt.Errorf("field 'Email' must be non-empty")
+func ParseCreateUserRequestBody(data map[string]any) (*CreateUserRequestBody, error) {
+	body := new(CreateUserRequestBody)
+
+	valAge, ok := data["Age"]
+	if !ok {
+
+		// skip, leave as zero value
+
+	} else {
+
+		var valAgeTyped int64
+		// JSON numbers are float64 by default, so we need to handle that case
+		switch v := valAge.(type) {
+		case float64:
+			valAgeTyped = int64(v)
+		case int64:
+			valAgeTyped = v
+		default:
+			return body, fmt.Errorf("field 'Age' has incorrect type")
+		}
+
+		body.Age = &valAgeTyped
+
 	}
 
-	if strings.TrimSpace(o.UserName) == "" {
-		return fmt.Errorf("field 'UserName' must be non-empty")
+	valArbitraryData, ok := data["ArbitraryData"]
+	if !ok {
+
+		// skip, leave as zero value
+
+	} else {
+		valArbitraryDataTyped, ok := valArbitraryData.(map[string]any)
+		if !ok {
+			return body, fmt.Errorf("field 'ArbitraryData' has incorrect type")
+		}
+
+		body.ArbitraryData = &valArbitraryDataTyped
 	}
 
-	return nil
+	valEmail, ok := data["Email"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'Email'")
+
+	} else {
+
+		valEmailTyped, ok := valEmail.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'Email' has incorrect type")
+		}
+
+		valEmailTyped = strings.TrimSpace(valEmailTyped)
+		if len(valEmailTyped) == 0 {
+			return body, fmt.Errorf("field 'Email' must be non-empty")
+		}
+
+		body.Email = valEmailTyped
+
+	}
+
+	valUserName, ok := data["UserName"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'UserName'")
+
+	} else {
+
+		valUserNameTyped, ok := valUserName.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'UserName' has incorrect type")
+		}
+
+		valUserNameTyped = strings.TrimSpace(valUserNameTyped)
+		if len(valUserNameTyped) == 0 {
+			return body, fmt.Errorf("field 'UserName' must be non-empty")
+		}
+
+		body.UserName = valUserNameTyped
+
+	}
+
+	return body, nil
 }
 
-type CreateUser201Response struct {
-
-	// Response body
-	Body CreateUser201ResponseBody
-}
-
-type CreateUser201ResponseBodyUser struct {
-
-	// The age of the user.
-	//
-	// Optional
-	//
-	Age *float64 `json:"Age,omitempty"`
-
-	// The email address of the user.
-	//
-	// Required
-	//
-	// Must be non-empty
-	Email string `json:"Email"`
-
-	// Indicates whether the user is active.
-	//
-	// Required
-	//
-	IsActive bool `json:"IsActive"`
-
-	// The unique identifier of the user.
-	//
-	// Required
-	//
-	// Must be non-empty
-	UserId string `json:"UserId"`
-
-	// The name of the user.
-	//
-	// Required
-	//
-	// Must be non-empty
-	UserName string `json:"UserName"`
-}
-
-type CreateUser201ResponseBody struct {
+type CreateUserResponseBody struct {
 
 	// An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator.
 	//
@@ -176,32 +154,72 @@ type CreateUser201ResponseBody struct {
 	//
 	ArbitraryData *map[string]any `json:"ArbitraryData,omitempty"`
 
-	// Response Schema for GetUser endpoint.
+	// The created user information.
 	//
 	// Required
 	//
-	User CreateUser201ResponseBodyUser `json:"User"`
+	User *User `json:"User"`
 }
 
-func NewCreateUser201Response(resp *http.Response) (CreateUser201Response, error) {
-	defer resp.Body.Close()
-	result := CreateUser201Response{}
+// NewCreateUserResponseBody creates a new instance of CreateUserResponseBody with required fields as parameters
+func NewCreateUserResponseBody(
 
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
+	User *User,
+
+) *CreateUserResponseBody {
+	return &CreateUserResponseBody{
+
+		User: User,
+	}
+}
+
+// WithArbitraryData sets the optional field ArbitraryData and returns the modified CreateUserResponseBody instance
+func (o *CreateUserResponseBody) WithArbitraryData(value *map[string]any) *CreateUserResponseBody {
+	o.ArbitraryData = value
+	return o
+}
+
+func ParseCreateUserResponseBody(data map[string]any) (*CreateUserResponseBody, error) {
+	body := new(CreateUserResponseBody)
+
+	valArbitraryData, ok := data["ArbitraryData"]
+	if !ok {
+
+		// skip, leave as zero value
+
+	} else {
+		valArbitraryDataTyped, ok := valArbitraryData.(map[string]any)
+		if !ok {
+			return body, fmt.Errorf("field 'ArbitraryData' has incorrect type")
+		}
+
+		body.ArbitraryData = &valArbitraryDataTyped
 	}
 
-	return result, nil
+	valUser, ok := data["User"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'User'")
+
+	} else {
+
+		valUserMap, ok := valUser.(map[string]any)
+		if !ok {
+			return body, fmt.Errorf("field 'User' has incorrect type")
+		}
+		valUserTyped, err := ParseUser(valUserMap)
+		if err != nil {
+			return body, fmt.Errorf("field 'User' is invalid: %w", err)
+		}
+
+		body.User = valUserTyped
+
+	}
+
+	return body, nil
 }
 
-type CreateUser400Response struct {
-
-	// Response body
-	Body CreateUser400ResponseBody
-}
-
-type CreateUser400ResponseBodyError struct {
+type ErrorResponse struct {
 
 	// A detailed debug message for developers. Only passed if in debug mode.
 	//
@@ -217,683 +235,272 @@ type CreateUser400ResponseBodyError struct {
 	ErrorMessage string `json:"ErrorMessage"`
 }
 
-type CreateUser400ResponseBody struct {
+// NewErrorResponse creates a new instance of ErrorResponse with required fields as parameters
+func NewErrorResponse(
 
-	// Standard error response schema.
-	//
-	// Required
-	//
-	Error CreateUser400ResponseBodyError `json:"Error"`
+	ErrorMessage string,
+
+) *ErrorResponse {
+	return &ErrorResponse{
+
+		ErrorMessage: ErrorMessage,
+	}
 }
 
-func NewCreateUser400Response(resp *http.Response) (CreateUser400Response, error) {
-	defer resp.Body.Close()
-	result := CreateUser400Response{}
+// WithDebugMessage sets the optional field DebugMessage and returns the modified ErrorResponse instance
+func (o *ErrorResponse) WithDebugMessage(value *string) *ErrorResponse {
+	o.DebugMessage = value
+	return o
+}
 
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
+func ParseErrorResponse(data map[string]any) (*ErrorResponse, error) {
+	body := new(ErrorResponse)
+
+	valDebugMessage, ok := data["DebugMessage"]
+	if !ok {
+
+		// skip, leave as zero value
+
+	} else {
+
+		valDebugMessageTyped, ok := valDebugMessage.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'DebugMessage' has incorrect type")
+		}
+
+		body.DebugMessage = &valDebugMessageTyped
+
 	}
 
-	return result, nil
-}
+	valErrorMessage, ok := data["ErrorMessage"]
+	if !ok {
 
-type CreateUser500Response struct {
+		return body, fmt.Errorf("missing required field 'ErrorMessage'")
 
-	// Response body
-	Body CreateUser500ResponseBody
-}
+	} else {
 
-type CreateUser500ResponseBodyError struct {
+		valErrorMessageTyped, ok := valErrorMessage.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'ErrorMessage' has incorrect type")
+		}
 
-	// A detailed debug message for developers. Only passed if in debug mode.
-	//
-	// Optional
-	//
-	DebugMessage *string `json:"DebugMessage,omitempty"`
+		valErrorMessageTyped = strings.TrimSpace(valErrorMessageTyped)
+		if len(valErrorMessageTyped) == 0 {
+			return body, fmt.Errorf("field 'ErrorMessage' must be non-empty")
+		}
 
-	// An error message which is user-friendly.
-	//
-	// Required
-	//
-	// Must be non-empty
-	ErrorMessage string `json:"ErrorMessage"`
-}
+		body.ErrorMessage = valErrorMessageTyped
 
-type CreateUser500ResponseBody struct {
-
-	// Standard error response schema.
-	//
-	// Required
-	//
-	Error CreateUser500ResponseBodyError `json:"Error"`
-}
-
-func NewCreateUser500Response(resp *http.Response) (CreateUser500Response, error) {
-	defer resp.Body.Close()
-	result := CreateUser500Response{}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
 	}
 
-	return result, nil
+	return body, nil
 }
 
-const (
-	GetUserRequestHTTPMethod = "GET"
-	GetUserRequestRoutePath  = "/users/{userId}"
-)
+type HealthCheckResponseBody struct {
 
-// Retrieve user information by user ID.
-type GetUserRequest struct {
-
-	// Source: path parameter "{userId}"
+	// The health status of the API, typically "OK".
 	//
-
-	// The unique identifier of the user.
-	//
-	// Required
-	UserId string
-
-	// Authentication parameters
-	Auth GetUserRequestAuthParams
-}
-
-type GetUserRequestAuthParams struct {
-
-	// Required Authentication Method
-	// Source: header "X-App-API-Key"
-	//
-	// Authentication method that denotes an API key passed in the request header.
-	//
-	// Format (NOT ENFORCED): api_key
-	//
-	APIKey *string
-
-	// Required Authentication Method
-	// Source: header "X-App-Session-Token"
-	//
-	// Authentication method that denotes a session token passed in the request header.
-	//
-	// Format (NOT ENFORCED): session_token
-	//
-	SessionToken *string
-}
-
-func (req *GetUserRequest) Validate() error {
-
-	// Authentication parameters validation
-
-	// Validate required auth parameters
-
-	if req.Auth.APIKey == nil {
-		return fmt.Errorf("missing required authentication parameter: X-App-API-Key")
-	}
-	if req.Auth.SessionToken == nil {
-		return fmt.Errorf("missing required authentication parameter: X-App-Session-Token")
-	}
-
-	return nil
-}
-
-type GetUser200Response struct {
-
-	// Response body
-	Body GetUser200ResponseBody
-}
-
-type GetUser200ResponseBodyUser struct {
-
-	// The age of the user.
-	//
-	// Optional
-	//
-	Age *float64 `json:"Age,omitempty"`
-
-	// The email address of the user.
-	//
-	// Required
-	//
-	// Must be non-empty
-	Email string `json:"Email"`
-
-	// Indicates whether the user is active.
-	//
-	// Required
-	//
-	IsActive bool `json:"IsActive"`
-
-	// The unique identifier of the user.
-	//
-	// Required
-	//
-	// Must be non-empty
-	UserId string `json:"UserId"`
-
-	// The name of the user.
-	//
-	// Required
-	//
-	// Must be non-empty
-	UserName string `json:"UserName"`
-}
-
-type GetUser200ResponseBody struct {
-
-	// Response Schema for GetUser endpoint.
-	//
-	// Required
-	//
-	User GetUser200ResponseBodyUser `json:"User"`
-}
-
-func NewGetUser200Response(resp *http.Response) (GetUser200Response, error) {
-	defer resp.Body.Close()
-	result := GetUser200Response{}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-type GetUser400Response struct {
-
-	// Response body
-	Body GetUser400ResponseBody
-}
-
-type GetUser400ResponseBodyError struct {
-
-	// A detailed debug message for developers. Only passed if in debug mode.
-	//
-	// Optional
-	//
-	DebugMessage *string `json:"DebugMessage,omitempty"`
-
-	// An error message which is user-friendly.
-	//
-	// Required
-	//
-	// Must be non-empty
-	ErrorMessage string `json:"ErrorMessage"`
-}
-
-type GetUser400ResponseBody struct {
-
-	// Standard error response schema.
-	//
-	// Required
-	//
-	Error GetUser400ResponseBodyError `json:"Error"`
-}
-
-func NewGetUser400Response(resp *http.Response) (GetUser400Response, error) {
-	defer resp.Body.Close()
-	result := GetUser400Response{}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-type GetUser404Response struct {
-
-	// Response body
-	Body GetUser404ResponseBody
-}
-
-type GetUser404ResponseBodyError struct {
-
-	// A detailed debug message for developers. Only passed if in debug mode.
-	//
-	// Optional
-	//
-	DebugMessage *string `json:"DebugMessage,omitempty"`
-
-	// An error message which is user-friendly.
-	//
-	// Required
-	//
-	// Must be non-empty
-	ErrorMessage string `json:"ErrorMessage"`
-}
-
-type GetUser404ResponseBody struct {
-
-	// Standard error response schema.
-	//
-	// Required
-	//
-	Error GetUser404ResponseBodyError `json:"Error"`
-}
-
-func NewGetUser404Response(resp *http.Response) (GetUser404Response, error) {
-	defer resp.Body.Close()
-	result := GetUser404Response{}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-type GetUser500Response struct {
-
-	// Response body
-	Body GetUser500ResponseBody
-}
-
-type GetUser500ResponseBodyError struct {
-
-	// A detailed debug message for developers. Only passed if in debug mode.
-	//
-	// Optional
-	//
-	DebugMessage *string `json:"DebugMessage,omitempty"`
-
-	// An error message which is user-friendly.
-	//
-	// Required
-	//
-	// Must be non-empty
-	ErrorMessage string `json:"ErrorMessage"`
-}
-
-type GetUser500ResponseBody struct {
-
-	// Standard error response schema.
-	//
-	// Required
-	//
-	Error GetUser500ResponseBodyError `json:"Error"`
-}
-
-func NewGetUser500Response(resp *http.Response) (GetUser500Response, error) {
-	defer resp.Body.Close()
-	result := GetUser500Response{}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-const (
-	HealthCheckRequestHTTPMethod = "GET"
-	HealthCheckRequestRoutePath  = "/health"
-)
-
-type HealthCheckRequest struct {
-}
-
-func (req *HealthCheckRequest) Validate() error {
-
-	// Authentication parameters validation
-
-	return nil
-}
-
-type HealthCheck200Response struct {
-
-	// Response body
-	Body HealthCheck200ResponseBody
-}
-
-type HealthCheck200ResponseBody struct {
-
 	// Required
 	//
 	// Must be non-empty
 	Status string `json:"Status"`
 }
 
-func NewHealthCheck200Response(resp *http.Response) (HealthCheck200Response, error) {
-	defer resp.Body.Close()
-	result := HealthCheck200Response{}
+// NewHealthCheckResponseBody creates a new instance of HealthCheckResponseBody with required fields as parameters
+func NewHealthCheckResponseBody(
 
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
+	Status string,
+
+) *HealthCheckResponseBody {
+	return &HealthCheckResponseBody{
+
+		Status: Status,
+	}
+}
+
+func ParseHealthCheckResponseBody(data map[string]any) (*HealthCheckResponseBody, error) {
+	body := new(HealthCheckResponseBody)
+
+	valStatus, ok := data["Status"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'Status'")
+
+	} else {
+
+		valStatusTyped, ok := valStatus.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'Status' has incorrect type")
+		}
+
+		valStatusTyped = strings.TrimSpace(valStatusTyped)
+		if len(valStatusTyped) == 0 {
+			return body, fmt.Errorf("field 'Status' must be non-empty")
+		}
+
+		body.Status = valStatusTyped
+
 	}
 
-	return result, nil
+	return body, nil
 }
 
-const (
-	ListUsersRequestHTTPMethod = "GET"
-	ListUsersRequestRoutePath  = "/users"
-)
-
-// List users with optional pagination.
-type ListUsersRequest struct {
-
-	// Source: query parameter "page"
-	//
-
-	// The page number for pagination. Default = 0.
-	//
-	// Optional
-	PageNumber *float64
-
-	// Source: query parameter "pageSize"
-	//
-
-	// The number of items per page for pagination. Default = 10.
-	//
-	// Optional
-	PageSize *float64
-
-	// Authentication parameters
-	Auth ListUsersRequestAuthParams
-}
-
-type ListUsersRequestAuthParams struct {
-
-	// Required Authentication Method
-	// Source: header "X-App-API-Key"
-	//
-	// Authentication method that denotes an API key passed in the request header.
-	//
-	// Format (NOT ENFORCED): api_key
-	//
-	APIKey *string
-
-	// Required Authentication Method
-	// Source: header "X-App-Admin-Token"
-	//
-	// Authentication method that denotes an admin token passed in the request header.
-	//
-	// Format (NOT ENFORCED): admin_token
-	//
-	AdminToken *string
-}
-
-func (req *ListUsersRequest) Validate() error {
-
-	// Authentication parameters validation
-
-	// Validate required auth parameters
-
-	if req.Auth.APIKey == nil {
-		return fmt.Errorf("missing required authentication parameter: X-App-API-Key")
-	}
-	if req.Auth.AdminToken == nil {
-		return fmt.Errorf("missing required authentication parameter: X-App-Admin-Token")
-	}
-
-	return nil
-}
-
-type ListUsers200Response struct {
-
-	// Destination: header "X-RateLimit-Remaining"
-	//
-
-	// The number of remaining requests allowed in the current rate limit window.
-	//
-	// Required
-	RateLimitRemaining float64
-
-	// Response body
-	Body ListUsers200ResponseBody
-}
-
-type ListUsers200ResponseBodyUsersItem struct {
-
-	// The age of the user.
-	//
-	// Optional
-	//
-	Age *float64 `json:"Age,omitempty"`
-
-	// The email address of the user.
-	//
-	// Required
-	//
-	// Must be non-empty
-	Email string `json:"Email"`
-
-	// Indicates whether the user is active.
-	//
-	// Required
-	//
-	IsActive bool `json:"IsActive"`
-
-	// The unique identifier of the user.
-	//
-	// Required
-	//
-	// Must be non-empty
-	UserId string `json:"UserId"`
-
-	// The name of the user.
-	//
-	// Required
-	//
-	// Must be non-empty
-	UserName string `json:"UserName"`
-}
-
-type ListUsers200ResponseBody struct {
+type ListUsersResponseBody struct {
 
 	// The current page number.
 	//
 	// Required
 	//
-	PageNumber float64 `json:"PageNumber"`
+	PageNumber int64 `json:"PageNumber"`
 
 	// The number of items per page.
 	//
 	// Required
 	//
-	PageSize float64 `json:"PageSize"`
+	PageSize int64 `json:"PageSize"`
 
 	// The total number of users available.
 	//
 	// Required
 	//
-	TotalCount float64 `json:"TotalCount"`
+	TotalCount int64 `json:"TotalCount"`
 
 	// Required
 	//
-	Users []ListUsers200ResponseBodyUsersItem `json:"Users"`
+	Users []User `json:"Users"`
 }
 
-func NewListUsers200Response(resp *http.Response) (ListUsers200Response, error) {
-	defer resp.Body.Close()
-	result := ListUsers200Response{}
+// NewListUsersResponseBody creates a new instance of ListUsersResponseBody with required fields as parameters
+func NewListUsersResponseBody(
 
-	headerRateLimitRemaining, err := parsefloat64Param(resp.Header.Get("X-RateLimit-Remaining"), "header: X-RateLimit-Remaining", true)
-	if err != nil {
-		return result, err
+	PageNumber int64,
+
+	PageSize int64,
+
+	TotalCount int64,
+
+	Users []User,
+
+) *ListUsersResponseBody {
+	return &ListUsersResponseBody{
+
+		PageNumber: PageNumber,
+
+		PageSize: PageSize,
+
+		TotalCount: TotalCount,
+
+		Users: Users,
+	}
+}
+
+func ParseListUsersResponseBody(data map[string]any) (*ListUsersResponseBody, error) {
+	body := new(ListUsersResponseBody)
+
+	valPageNumber, ok := data["PageNumber"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'PageNumber'")
+
+	} else {
+
+		var valPageNumberTyped int64
+		// JSON numbers are float64 by default, so we need to handle that case
+		switch v := valPageNumber.(type) {
+		case float64:
+			valPageNumberTyped = int64(v)
+		case int64:
+			valPageNumberTyped = v
+		default:
+			return body, fmt.Errorf("field 'PageNumber' has incorrect type")
+		}
+
+		body.PageNumber = valPageNumberTyped
+
 	}
 
-	result.RateLimitRemaining = *headerRateLimitRemaining
+	valPageSize, ok := data["PageSize"]
+	if !ok {
 
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
+		return body, fmt.Errorf("missing required field 'PageSize'")
+
+	} else {
+
+		var valPageSizeTyped int64
+		// JSON numbers are float64 by default, so we need to handle that case
+		switch v := valPageSize.(type) {
+		case float64:
+			valPageSizeTyped = int64(v)
+		case int64:
+			valPageSizeTyped = v
+		default:
+			return body, fmt.Errorf("field 'PageSize' has incorrect type")
+		}
+
+		body.PageSize = valPageSizeTyped
+
 	}
 
-	return result, nil
-}
+	valTotalCount, ok := data["TotalCount"]
+	if !ok {
 
-type ListUsers400Response struct {
+		return body, fmt.Errorf("missing required field 'TotalCount'")
 
-	// Response body
-	Body ListUsers400ResponseBody
-}
+	} else {
 
-type ListUsers400ResponseBodyError struct {
+		var valTotalCountTyped int64
+		// JSON numbers are float64 by default, so we need to handle that case
+		switch v := valTotalCount.(type) {
+		case float64:
+			valTotalCountTyped = int64(v)
+		case int64:
+			valTotalCountTyped = v
+		default:
+			return body, fmt.Errorf("field 'TotalCount' has incorrect type")
+		}
 
-	// A detailed debug message for developers. Only passed if in debug mode.
-	//
-	// Optional
-	//
-	DebugMessage *string `json:"DebugMessage,omitempty"`
+		body.TotalCount = valTotalCountTyped
 
-	// An error message which is user-friendly.
-	//
-	// Required
-	//
-	// Must be non-empty
-	ErrorMessage string `json:"ErrorMessage"`
-}
-
-type ListUsers400ResponseBody struct {
-
-	// Standard error response schema.
-	//
-	// Required
-	//
-	Error ListUsers400ResponseBodyError `json:"Error"`
-}
-
-func NewListUsers400Response(resp *http.Response) (ListUsers400Response, error) {
-	defer resp.Body.Close()
-	result := ListUsers400Response{}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
 	}
 
-	return result, nil
-}
+	valUsers, ok := data["Users"]
+	if !ok {
 
-type ListUsers500Response struct {
+		return body, fmt.Errorf("missing required field 'Users'")
 
-	// Response body
-	Body ListUsers500ResponseBody
-}
+	} else {
 
-type ListUsers500ResponseBodyError struct {
+		valUsersSlice, ok := valUsers.([]any)
+		if !ok {
+			return body, fmt.Errorf("field 'Users' has incorrect type")
+		}
 
-	// A detailed debug message for developers. Only passed if in debug mode.
-	//
-	// Optional
-	//
-	DebugMessage *string `json:"DebugMessage,omitempty"`
+		if len(valUsersSlice) == 0 {
+			return body, fmt.Errorf("field 'Users' must be non-empty")
+		}
 
-	// An error message which is user-friendly.
-	//
-	// Required
-	//
-	// Must be non-empty
-	ErrorMessage string `json:"ErrorMessage"`
-}
+		valUsersTyped := make([]User, 0, len(valUsersSlice))
 
-type ListUsers500ResponseBody struct {
+		for idx, item := range valUsersSlice {
+			itemMap, ok := item.(map[string]any)
+			if !ok {
+				return body, fmt.Errorf("element %d of field 'Users' has incorrect type", idx)
+			}
+			validatedItem, err := ParseUser(itemMap)
+			if err != nil {
+				return body, fmt.Errorf("element %d of field 'Users' is invalid: %w", idx, err)
+			}
+			valUsersTyped = append(valUsersTyped, *validatedItem)
+		}
 
-	// Standard error response schema.
-	//
-	// Required
-	//
-	Error ListUsers500ResponseBodyError `json:"Error"`
-}
+		body.Users = valUsersTyped
 
-func NewListUsers500Response(resp *http.Response) (ListUsers500Response, error) {
-	defer resp.Body.Close()
-	result := ListUsers500Response{}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
 	}
 
-	return result, nil
+	return body, nil
 }
 
-const (
-	LogoutUserRequestHTTPMethod = "GET"
-	LogoutUserRequestRoutePath  = "/users/logout"
-)
-
-// Logout the current user.
-type LogoutUserRequest struct {
-
-	// Authentication parameters
-	Auth LogoutUserRequestAuthParams
-}
-
-type LogoutUserRequestAuthParams struct {
-
-	// Required Authentication Method
-	// Source: header "X-App-API-Key"
-	//
-	// Authentication method that denotes an API key passed in the request header.
-	//
-	// Format (NOT ENFORCED): api_key
-	//
-	APIKey *string
-
-	// At least one of the following authentication methods is required
-
-	// Source: header "X-App-Session-Token"
-	//
-	// Authentication method that denotes a session token passed in the request header.
-	//
-	// Format (NOT ENFORCED): session_token
-	//
-	SessionToken *string
-
-	// Source: header "X-App-Refresh-Token"
-	//
-	// Authentication method that denotes a refresh token passed in the request header.
-	//
-	// Format (NOT ENFORCED): refresh_token
-	//
-	RefreshToken *string
-}
-
-func (req *LogoutUserRequest) Validate() error {
-
-	// Authentication parameters validation
-
-	// Validate required auth parameters
-
-	if req.Auth.APIKey == nil {
-		return fmt.Errorf("missing required authentication parameter: X-App-API-Key")
-	}
-
-	// Get the set of auth parameters
-	authParamsSet := "X-App-Session-Token, X-App-Refresh-Token"
-	// Validate at least one auth parameter is present
-	anyAuthParamsPresent := false
-
-	if req.Auth.SessionToken != nil {
-		anyAuthParamsPresent = true
-	}
-
-	if req.Auth.RefreshToken != nil {
-		anyAuthParamsPresent = true
-	}
-
-	if !anyAuthParamsPresent {
-		return fmt.Errorf("missing required authentication (any of): %v", authParamsSet)
-	}
-	return nil
-}
-
-type LogoutUser200Response struct {
-
-	// Response body
-	Body LogoutUser200ResponseBody
-}
-
-type LogoutUser200ResponseBody struct {
+type LogoutUserResponseBody struct {
 
 	// A message confirming successful logout.
 	//
@@ -903,100 +510,214 @@ type LogoutUser200ResponseBody struct {
 	Message string `json:"Message"`
 }
 
-func NewLogoutUser200Response(resp *http.Response) (LogoutUser200Response, error) {
-	defer resp.Body.Close()
-	result := LogoutUser200Response{}
+// NewLogoutUserResponseBody creates a new instance of LogoutUserResponseBody with required fields as parameters
+func NewLogoutUserResponseBody(
 
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
+	Message string,
+
+) *LogoutUserResponseBody {
+	return &LogoutUserResponseBody{
+
+		Message: Message,
+	}
+}
+
+func ParseLogoutUserResponseBody(data map[string]any) (*LogoutUserResponseBody, error) {
+	body := new(LogoutUserResponseBody)
+
+	valMessage, ok := data["Message"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'Message'")
+
+	} else {
+
+		valMessageTyped, ok := valMessage.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'Message' has incorrect type")
+		}
+
+		valMessageTyped = strings.TrimSpace(valMessageTyped)
+		if len(valMessageTyped) == 0 {
+			return body, fmt.Errorf("field 'Message' must be non-empty")
+		}
+
+		body.Message = valMessageTyped
+
 	}
 
-	return result, nil
+	return body, nil
 }
 
-type LogoutUser400Response struct {
+type User struct {
 
-	// Response body
-	Body LogoutUser400ResponseBody
-}
-
-type LogoutUser400ResponseBodyError struct {
-
-	// A detailed debug message for developers. Only passed if in debug mode.
+	// The age of the user.
 	//
 	// Optional
 	//
-	DebugMessage *string `json:"DebugMessage,omitempty"`
+	Age *int64 `json:"Age,omitempty"`
 
-	// An error message which is user-friendly.
+	// The email address of the user.
 	//
 	// Required
 	//
 	// Must be non-empty
-	ErrorMessage string `json:"ErrorMessage"`
-}
+	Email string `json:"Email"`
 
-type LogoutUser400ResponseBody struct {
-
-	// Standard error response schema.
+	// Indicates whether the user is active.
 	//
 	// Required
 	//
-	Error LogoutUser400ResponseBodyError `json:"Error"`
-}
+	IsActive bool `json:"IsActive"`
 
-func NewLogoutUser400Response(resp *http.Response) (LogoutUser400Response, error) {
-	defer resp.Body.Close()
-	result := LogoutUser400Response{}
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-type LogoutUser500Response struct {
-
-	// Response body
-	Body LogoutUser500ResponseBody
-}
-
-type LogoutUser500ResponseBodyError struct {
-
-	// A detailed debug message for developers. Only passed if in debug mode.
-	//
-	// Optional
-	//
-	DebugMessage *string `json:"DebugMessage,omitempty"`
-
-	// An error message which is user-friendly.
+	// The unique identifier of the user.
 	//
 	// Required
 	//
 	// Must be non-empty
-	ErrorMessage string `json:"ErrorMessage"`
-}
+	UserId string `json:"UserId"`
 
-type LogoutUser500ResponseBody struct {
-
-	// Standard error response schema.
+	// The name of the user.
 	//
 	// Required
 	//
-	Error LogoutUser500ResponseBodyError `json:"Error"`
+	// Must be non-empty
+	UserName string `json:"UserName"`
 }
 
-func NewLogoutUser500Response(resp *http.Response) (LogoutUser500Response, error) {
-	defer resp.Body.Close()
-	result := LogoutUser500Response{}
+// NewUser creates a new instance of User with required fields as parameters
+func NewUser(
 
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&result.Body); err != nil {
-		return result, err
+	Email string,
+
+	IsActive bool,
+
+	UserId string,
+
+	UserName string,
+
+) *User {
+	return &User{
+
+		Email: Email,
+
+		IsActive: IsActive,
+
+		UserId: UserId,
+
+		UserName: UserName,
+	}
+}
+
+// WithAge sets the optional field Age and returns the modified User instance
+func (o *User) WithAge(value *int64) *User {
+	o.Age = value
+	return o
+}
+
+func ParseUser(data map[string]any) (*User, error) {
+	body := new(User)
+
+	valAge, ok := data["Age"]
+	if !ok {
+
+		// skip, leave as zero value
+
+	} else {
+
+		var valAgeTyped int64
+		// JSON numbers are float64 by default, so we need to handle that case
+		switch v := valAge.(type) {
+		case float64:
+			valAgeTyped = int64(v)
+		case int64:
+			valAgeTyped = v
+		default:
+			return body, fmt.Errorf("field 'Age' has incorrect type")
+		}
+
+		body.Age = &valAgeTyped
+
 	}
 
-	return result, nil
+	valEmail, ok := data["Email"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'Email'")
+
+	} else {
+
+		valEmailTyped, ok := valEmail.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'Email' has incorrect type")
+		}
+
+		valEmailTyped = strings.TrimSpace(valEmailTyped)
+		if len(valEmailTyped) == 0 {
+			return body, fmt.Errorf("field 'Email' must be non-empty")
+		}
+
+		body.Email = valEmailTyped
+
+	}
+
+	valIsActive, ok := data["IsActive"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'IsActive'")
+
+	} else {
+
+		valIsActiveTyped, ok := valIsActive.(bool)
+		if !ok {
+			return body, fmt.Errorf("field 'IsActive' has incorrect type")
+		}
+
+		body.IsActive = valIsActiveTyped
+
+	}
+
+	valUserId, ok := data["UserId"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'UserId'")
+
+	} else {
+
+		valUserIdTyped, ok := valUserId.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'UserId' has incorrect type")
+		}
+
+		valUserIdTyped = strings.TrimSpace(valUserIdTyped)
+		if len(valUserIdTyped) == 0 {
+			return body, fmt.Errorf("field 'UserId' must be non-empty")
+		}
+
+		body.UserId = valUserIdTyped
+
+	}
+
+	valUserName, ok := data["UserName"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'UserName'")
+
+	} else {
+
+		valUserNameTyped, ok := valUserName.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'UserName' has incorrect type")
+		}
+
+		valUserNameTyped = strings.TrimSpace(valUserNameTyped)
+		if len(valUserNameTyped) == 0 {
+			return body, fmt.Errorf("field 'UserName' must be non-empty")
+		}
+
+		body.UserName = valUserNameTyped
+
+	}
+
+	return body, nil
 }

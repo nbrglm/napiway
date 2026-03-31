@@ -21,50 +21,111 @@ tsSdk:
     - NApiWay
     - Code Generation
 
-components:
-  schemas:
-    User: &userSchema
-      type: object
-      required: true
-      description: Response Schema for GetUser endpoint.
-      properties:
-        UserId:
-          type: string
-          required: true
-          nonEmpty: true
-          description: The unique identifier of the user.
-        UserName:
-          type: string
-          required: true
-          nonEmpty: true
-          description: The name of the user.
-        Email:
-          type: string
-          required: true
-          nonEmpty: true
-          description: The email address of the user.
-        IsActive:
-          type: boolean
-          required: true
-          description: Indicates whether the user is active.
-        Age:
-          type: number
-          required: false
-          description: The age of the user.
-    ErrorResponse: &errorResponseSchema
-      type: object
-      required: true
-      description: Standard error response schema.
-      properties:
-        ErrorMessage:
-          type: string
-          required: true
-          nonEmpty: true
-          description: An error message which is user-friendly.
-        DebugMessage:
-          type: string
-          required: false
-          description: A detailed debug message for developers. Only passed if in debug mode.
+schemas:
+  - name: HealthCheckResponseBody
+    description: Response body for the HealthCheck endpoint.
+    properties:
+      - name: Status
+        type: string
+        required: true
+        nonEmpty: true
+        description: The health status of the API, typically "OK".
+  - name: LogoutUserResponseBody
+    description: Response body for the LogoutUser endpoint.
+    properties:
+      - name: Message
+        type: string
+        required: true
+        nonEmpty: true
+        description: A message confirming successful logout.
+  - name: ListUsersResponseBody
+    description: Successful response containing a list of users.
+    properties:
+      - name: Users
+        type: User
+        isArray: true
+        required: true
+      - name: PageNumber
+        type: int
+        required: true
+        description: The current page number.
+      - name: PageSize
+        type: int
+        required: true
+        description: The number of items per page.
+      - name: TotalCount
+        type: int
+        required: true
+        description: The total number of users available.
+
+  - name: CreateUserRequestBody
+    description: Request body for creating a new user.
+    properties:
+      - name: UserName
+        type: string
+        required: true
+        nonEmpty: true
+        description: The name of the user to be created.
+      - name: Email
+        type: string
+        required: true
+        nonEmpty: true
+        description: The email address of the user to be created.
+      - name: Age
+        type: int
+        required: false
+        description: The age of the user to be created.
+      - name: ArbitraryData
+        type: freeFormObject
+        description: An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator. This is returned by the server in the response body.
+  - name: CreateUserResponseBody
+    description: Successful response containing the created user information.
+    properties:
+      - name: User
+        type: User
+        required: true
+        description: The created user information.
+      - name: ArbitraryData
+        type: freeFormObject
+        description: An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator.
+  - name: User
+    description: Response Schema for GetUser endpoint.
+    properties:
+      - name: UserId
+        type: string
+        required: true
+        nonEmpty: true
+        description: The unique identifier of the user.
+      - name: UserName
+        type: string
+        required: true
+        nonEmpty: true
+        description: The name of the user.
+      - name: Email
+        type: string
+        required: true
+        nonEmpty: true
+        description: The email address of the user.
+      - name: IsActive
+        type: boolean
+        required: true
+        description: Indicates whether the user is active.
+      - name: Age
+        type: int
+        required: false
+        description: The age of the user.
+  - name: ErrorResponse
+    description: Standard error response schema.
+    properties:
+      - name: ErrorMessage
+        type: string
+        required: true
+        nonEmpty: true
+        description: An error message which is user-friendly.
+      - name: DebugMessage
+        type: string
+        required: false
+        description: A detailed debug message for developers. Only passed if in debug mode.
 
 spec:
   name: Testing API
@@ -108,7 +169,7 @@ spec:
     # ─────────────────────────────────────────────
     # Auth params + Body
     # ─────────────────────────────────────────────
-    CreateUser:
+    - name: CreateUser
       method: POST
       path: /users/new
       description: Create a new user in the system.
@@ -116,51 +177,21 @@ spec:
         all:
           - apiKeyAuth
           - adminTokenAuth
-      requestBody:
-        description: Request body for creating a new user.
-        properties:
-          UserName:
-            type: string
-            required: true
-            nonEmpty: true
-            description: The name of the user to be created.
-          Email:
-            type: string
-            required: true
-            nonEmpty: true
-            description: The email address of the user to be created.
-          Age:
-            type: number
-            required: false
-            description: The age of the user to be created.
-          ArbitraryData:
-            type: object
-            freeForm: true
-            description: An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator. This is returned by the server in the response body.
+      bodyName: CreateUserRequestBody
       responses:
-        201:
+        - statusCode: 201
           description: Successful response containing the created user information.
-          body:
-            properties:
-              User: *userSchema
-              ArbitraryData:
-                type: object
-                freeForm: true
-                description: An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator.
-        400:
+          bodyName: CreateUserResponseBody
+        - statusCode: 400
           description: Bad Request
-          body:
-            properties:
-              Error: *errorResponseSchema
-        500:
+          bodyName: ErrorResponse
+        - statusCode: 500
           description: Internal Server Error
-          body:
-            properties:
-              Error: *errorResponseSchema
+          bodyName: ErrorResponse
     # ─────────────────────────────────────────────
     # Path + Auth params
     # ─────────────────────────────────────────────
-    GetUser:
+    - name: GetUser
       method: GET
       path: /users/{userId}
       description: Retrieve user information by user ID.
@@ -179,31 +210,23 @@ spec:
           transportName: "userId"
 
       responses:
-        200:
+        - statusCode: 200
           description: Successful response containing user information.
-          body:
-            properties:
-              User: *userSchema
-        400:
+          bodyName: User
+        - statusCode: 400
           description: Bad Request
-          body:
-            properties:
-              Error: *errorResponseSchema
-        404:
+          bodyName: ErrorResponse
+        - statusCode: 404
           description: User Not Found
-          body:
-            properties:
-              Error: *errorResponseSchema
-        500:
+          bodyName: ErrorResponse
+        - statusCode: 500
           description: Internal Server Error
-          body:
-            properties:
-              Error: *errorResponseSchema
+          bodyName: ErrorResponse
 
     # ─────────────────────────────────────────────
     # Query + Auth params
     # ─────────────────────────────────────────────
-    ListUsers:
+    - name: ListUsers
       method: GET
       path: /users
       description: List users with optional pagination.
@@ -213,54 +236,33 @@ spec:
           - adminTokenAuth
       queryParams:
         - name: PageNumber
-          type: number
+          type: int
           required: false
           description: The page number for pagination. Default = 0.
           transportName: page
         - name: PageSize
-          type: number
+          type: int
           required: false
           description: The number of items per page for pagination. Default = 10.
           transportName: pageSize
       responses:
-        200:
+        - statusCode: 200
           description: Successful response containing a list of users.
           headers:
             - name: RateLimitRemaining
               transportName: X-RateLimit-Remaining
-              type: number
+              type: int
               required: true
               description: The number of remaining requests allowed in the current rate limit window.
-          body:
-            properties:
-              Users:
-                type: array
-                required: true
-                items: *userSchema
-              PageNumber:
-                type: number
-                required: true
-                description: The current page number.
-              PageSize:
-                type: number
-                required: true
-                description: The number of items per page.
-              TotalCount:
-                type: number
-                required: true
-                description: The total number of users available.
-        400:
+          bodyName: ListUsersResponseBody
+        - statusCode: 400
           description: Bad Request
-          body:
-            properties:
-              Error: *errorResponseSchema
-        500:
+          bodyName: ErrorResponse
+        - statusCode: 500
           description: Internal Server Error
-          body:
-            properties:
-              Error: *errorResponseSchema
+          bodyName: ErrorResponse
 
-    LogoutUser:
+    - name: LogoutUser
       method: GET
       path: /users/logout
       description: Logout the current user.
@@ -271,41 +273,46 @@ spec:
           - sessionTokenAuth
           - refreshTokenAuth
       responses:
-        200:
+        - statusCode: 200
           description: Successful logout response.
-          body:
-            properties:
-              Message:
-                type: string
-                required: true
-                nonEmpty: true
-                description: A message confirming successful logout.
-        400:
+          bodyName: LogoutUserResponseBody
+        - statusCode: 400
           description: Bad Request
-          body:
-            properties:
-              Error: *errorResponseSchema
-        500:
+          bodyName: ErrorResponse
+        - statusCode: 500
           description: Internal Server Error
-          body:
-            properties:
-              Error: *errorResponseSchema
+          bodyName: ErrorResponse
+
+    - name: WhoAmI
+      method: POST
+      path: /users/whoami
+      description: Get information about the currently authenticated user. Provide the request body as just a string which is set to the user id.
+      auth:
+        all:
+          - apiKeyAuth
+          - sessionTokenAuth
+      rawBody: true
+      responses:
+        - statusCode: 200
+          description: Successful response containing information about the currently authenticated user. Body is just a string with the user id provided in request body.
+          headers:
+            - name: RateLimitRemaining
+              transportName: X-RateLimit-Remaining
+              type: int
+              required: true
+              description: The number of remaining requests allowed in the current rate limit window.
+          rawBody: true
+        - statusCode: 400
+          description: Invalid Request
 
     # ─────────────────────────────────────────────
     # Simple health check endpoint
     # ─────────────────────────────────────────────
-    HealthCheck:
+    - name: HealthCheck
       method: GET
       path: /health
 
       responses:
-        200:
+        - statusCode: 200
           description: OK
-          body:
-            type: object
-            required: true
-            properties:
-              status:
-                type: string
-                required: true
-                nonEmpty: true
+          bodyName: HealthCheckResponseBody

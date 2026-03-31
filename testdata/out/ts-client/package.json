@@ -18,12 +18,14 @@
   },
   "license": "Apache-2.0",
   "author": "NBRGLM Developers <support@nbrglm.com>",
-  "type": "esm",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test-client": "tsx index.ts"
   },
   "dependencies": {
-    "typescript": "^5.9.3"
+    "ts-sdk": "file:../ts-sdk",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
+    "@types/node": "^25.5.0"
   }
 }

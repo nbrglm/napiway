@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"math/rand/v2"
 	"net/http"
 	"os"
 
@@ -9,14 +11,14 @@ import (
 )
 
 type User struct {
-	ID       string   `json:"id"`
-	Name     string   `json:"name"`
-	Email    string   `json:"email"`
-	IsActive bool     `json:"is_active"`
-	Age      *float64 `json:"age"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	IsActive bool   `json:"is_active"`
+	Age      *int64 `json:"age"`
 }
 
-var age1 = 28.0
+var age1 = int64(28)
 
 var users = []User{
 	{
@@ -52,24 +54,28 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(api.ListUsersRequestRoutePath, handleListUsers)
+	mux.HandleFunc(api.ListUsersReqRoutePath, handleListUsers)
 
-	mux.HandleFunc(api.GetUserRequestRoutePath, handleGetUser)
+	mux.HandleFunc(api.GetUserReqRoutePath, handleGetUser)
 
-	mux.HandleFunc(api.CreateUserRequestRoutePath, handleCreateUser)
+	mux.HandleFunc(api.CreateUserReqRoutePath, handleCreateUser)
 
-	mux.HandleFunc(api.LogoutUserRequestRoutePath, handleLogoutUser)
+	mux.HandleFunc(api.LogoutUserReqRoutePath, handleLogoutUser)
 
-	mux.HandleFunc(api.HealthCheckRequestRoutePath, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != api.HealthCheckRequestHTTPMethod {
+	mux.HandleFunc(api.WhoAmIReqRoutePath, handleWhoAmI)
+
+	mux.HandleFunc(api.HealthCheckReqRoutePath, func(w http.ResponseWriter, r *http.Request) {
+		req, _ := api.ParseHealthCheckReq(w, r)
+		if r.Method != api.HealthCheckReqHTTPMethod {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		api.WriteHealthCheck200Response(w, api.HealthCheck200Response{
-			Body: api.HealthCheck200ResponseBody{
-				Status: "ok",
-			},
-		})
+		req.Write200(
+			w,
+			api.NewHealthCheck200(
+				api.NewHealthCheckResponseBody("ok"),
+			),
+		)
 	})
 
 	if err := http.ListenAndServe(serverAddr, mux); err != nil {
@@ -78,48 +84,39 @@ func main() {
 }
 
 func handleListUsers(w http.ResponseWriter, r *http.Request) {
-	if r.Method != api.ListUsersRequestHTTPMethod {
+	if r.Method != api.ListUsersReqHTTPMethod {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	req, err := api.NewListUsersRequest(w, r)
+	req, err := api.ParseListUsersReq(w, r)
 	if err != nil {
 		debugMsg := err.Error()
-		api.WriteListUsers400Response(w, api.ListUsers400Response{
-			Body: api.ListUsers400ResponseBody{
-				Error: api.ListUsers400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Invalid request",
-				},
-			},
-		})
+		req.Write400(w, api.NewListUsers400(
+			api.NewErrorResponse(
+				debugMsg,
+			),
+		))
 		return
 	}
 
-	if *req.Auth.APIKey != "valid" {
+	if req.APIKeyAuth != "valid" {
 		debugMsg := "Invalid API key"
-		api.WriteListUsers400Response(w, api.ListUsers400Response{
-			Body: api.ListUsers400ResponseBody{
-				Error: api.ListUsers400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Unauthorized",
-				},
-			},
-		})
+		req.Write400(w, api.NewListUsers400(
+			api.NewErrorResponse(
+				debugMsg,
+			),
+		))
 		return
 	}
 
-	if *req.Auth.AdminToken != "valid" {
+	if req.AdminTokenAuth != "valid" {
 		debugMsg := "Invalid Admin token"
-		api.WriteListUsers400Response(w, api.ListUsers400Response{
-			Body: api.ListUsers400ResponseBody{
-				Error: api.ListUsers400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Unauthorized",
-				},
-			},
-		})
+		req.Write400(w, api.NewListUsers400(
+			api.NewErrorResponse(
+				debugMsg,
+			),
+		))
 		return
 	}
 
@@ -142,151 +139,134 @@ func handleListUsers(w http.ResponseWriter, r *http.Request) {
 		endIndex = len(users)
 	}
 
-	respUsers := make([]api.ListUsers200ResponseBodyUsersItem, 0, endIndex-startIndex)
+	respUsers := make([]api.User, 0, endIndex-startIndex)
 	for _, user := range users[startIndex:endIndex] {
-		respUsers = append(respUsers, api.ListUsers200ResponseBodyUsersItem{
-			UserId:   user.ID,
-			UserName: user.Name,
-			Email:    user.Email,
-			IsActive: user.IsActive,
-			Age:      user.Age,
-		})
+		respUsers = append(respUsers, *mapToApiUser(user))
 	}
 
-	api.WriteListUsers200Response(w, api.ListUsers200Response{
-		Body: api.ListUsers200ResponseBody{
-			Users:      respUsers,
-			PageNumber: float64(pageNumber),
-			PageSize:   float64(pageSize),
-			TotalCount: float64(len(users)),
-		},
-	})
+	req.Write200(w, api.NewListUsers200(
+		rand.Int64N(100),
+		api.NewListUsersResponseBody(
+			int64(pageNumber),
+			int64(pageSize),
+			int64(len(users)),
+			respUsers,
+		),
+	))
 }
 
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != api.GetUserRequestHTTPMethod {
+	if r.Method != api.GetUserReqHTTPMethod {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	req, err := api.NewGetUserRequest(w, r)
+	req, err := api.ParseGetUserReq(w, r)
 	if err != nil {
 		debugMsg := err.Error()
-		api.WriteGetUser400Response(w, api.GetUser400Response{
-			Body: api.GetUser400ResponseBody{
-				Error: api.GetUser400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Invalid request",
-				},
-			},
-		})
+		fmt.Printf("Error parsing GetUser request: %s\n", debugMsg)
+		req.Write400(
+			w,
+			api.NewGetUser400(
+				api.NewErrorResponse("Invalid request"),
+			),
+		)
 		return
 	}
 
-	if *req.Auth.APIKey != "valid" {
+	if req.APIKeyAuth != "valid" {
 		debugMsg := "Invalid API key"
-		api.WriteGetUser400Response(w, api.GetUser400Response{
-			Body: api.GetUser400ResponseBody{
-				Error: api.GetUser400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Unauthorized",
-				},
-			},
-		})
+		fmt.Printf("Error handling GetUser request: %s\n", debugMsg)
+		req.Write400(
+			w,
+			api.NewGetUser400(
+				api.NewErrorResponse("Unauthorized"),
+			),
+		)
 		return
 	}
 
-	if *req.Auth.SessionToken != "valid" {
+	if req.SessionTokenAuth != "valid" {
 		debugMsg := "Invalid Session token"
-		api.WriteGetUser400Response(w, api.GetUser400Response{
-			Body: api.GetUser400ResponseBody{
-				Error: api.GetUser400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Unauthorized",
-				},
-			},
-		})
+		fmt.Printf("Error handling GetUser request: %s\n", debugMsg)
+		req.Write400(
+			w,
+			api.NewGetUser400(
+				api.NewErrorResponse("Unauthorized"),
+			),
+		)
 		return
 	}
 
-	user := new(api.GetUser200ResponseBodyUser)
+	user := new(api.User)
 	for _, u := range users {
 		if u.ID == req.UserId {
-			user = &api.GetUser200ResponseBodyUser{
-				UserId:   u.ID,
-				UserName: u.Name,
-				Email:    u.Email,
-				IsActive: u.IsActive,
-				Age:      u.Age,
-			}
+			user = mapToApiUser(u)
 			break
 		}
 	}
 
 	if user == nil {
 		debugMsg := "User not found"
-		api.WriteGetUser404Response(w, api.GetUser404Response{
-			Body: api.GetUser404ResponseBody{
-				Error: api.GetUser404ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "User not found",
-				},
-			},
-		})
+		fmt.Printf("Error handling GetUser request: %s\n", debugMsg)
+		req.Write404(
+			w,
+			api.NewGetUser404(
+				api.NewErrorResponse("User not found"),
+			),
+		)
 		return
 	}
 
-	api.WriteGetUser200Response(w, api.GetUser200Response{
-		Body: api.GetUser200ResponseBody{
-			User: *user,
-		},
-	})
+	req.Write200(
+		w,
+		api.NewGetUser200(
+			user,
+		),
+	)
 }
 
 func handleCreateUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != api.CreateUserRequestHTTPMethod {
+	if r.Method != api.CreateUserReqHTTPMethod {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	req, err := api.NewCreateUserRequest(w, r)
+	req, err := api.ParseCreateUserReq(w, r)
 
 	if err != nil {
 		debugMsg := err.Error()
-		api.WriteCreateUser400Response(w, api.CreateUser400Response{
-			Body: api.CreateUser400ResponseBody{
-				Error: api.CreateUser400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Invalid request",
-				},
-			},
-		})
+		fmt.Printf("Error parsing CreateUser request: %s\n", debugMsg)
+		req.Write400(w, api.NewCreateUser400(
+			api.NewErrorResponse("Invalid request"),
+		))
 		return
 	}
 
-	if *req.Auth.APIKey != "valid" {
+	if req.APIKeyAuth != "valid" {
 		debugMsg := "Invalid API key"
-		api.WriteCreateUser400Response(w, api.CreateUser400Response{
-			Body: api.CreateUser400ResponseBody{
-				Error: api.CreateUser400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Unauthorized",
-				},
-			},
-		})
+		fmt.Printf("Error handling CreateUser request: %s\n", debugMsg)
+		req.Write400(w, api.NewCreateUser400(
+			api.NewErrorResponse(debugMsg),
+		))
 		return
 	}
 
-	if *req.Auth.AdminToken != "valid" {
+	if req.AdminTokenAuth != "valid" {
 		debugMsg := "Invalid Admin token"
-		api.WriteCreateUser400Response(w, api.CreateUser400Response{
-			Body: api.CreateUser400ResponseBody{
-				Error: api.CreateUser400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Unauthorized",
-				},
-			},
-		})
+		fmt.Printf("Error handling CreateUser request: %s\n", debugMsg)
+		req.Write400(w, api.NewCreateUser400(
+			api.NewErrorResponse(debugMsg),
+		))
+		return
+	}
+
+	if req.Body.Age != nil && *req.Body.Age < 0 {
+		debugMsg := "Age cannot be negative"
+		fmt.Printf("Error handling CreateUser request: %s\n", debugMsg)
+		req.Write400(w, api.NewCreateUser400(
+			api.NewErrorResponse(debugMsg),
+		))
 		return
 	}
 
@@ -298,75 +278,111 @@ func handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		Age:      req.Body.Age,
 	}
 	users = append(users, user)
-	api.WriteCreateUser201Response(w, api.CreateUser201Response{
-		Body: api.CreateUser201ResponseBody{
-			User: api.CreateUser201ResponseBodyUser{
-				UserId:   user.ID,
-				UserName: user.Name,
-				Email:    user.Email,
-				IsActive: user.IsActive,
-				Age:      user.Age,
-			},
-			ArbitraryData: req.Body.ArbitraryData,
-		},
-	})
+	resp := api.NewCreateUser201(
+		api.
+			NewCreateUserResponseBody(
+				mapToApiUser(user)).
+			WithArbitraryData(req.Body.ArbitraryData),
+	)
+
+	req.Write201(w, resp)
 }
 
 func handleLogoutUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != api.LogoutUserRequestHTTPMethod {
+	if r.Method != api.LogoutUserReqHTTPMethod {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	req, err := api.NewLogoutUserRequest(w, r)
+	req, err := api.ParseLogoutUserReq(w, r)
 	if err != nil {
 		debugMsg := err.Error()
-		api.WriteLogoutUser400Response(w, api.LogoutUser400Response{
-			Body: api.LogoutUser400ResponseBody{
-				Error: api.LogoutUser400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Invalid request",
-				},
-			},
-		})
+		req.Write400(
+			w,
+			api.NewLogoutUser400(
+				api.NewErrorResponse(debugMsg),
+			),
+		)
 		return
 	}
 
-	if *req.Auth.APIKey == "valid" {
-		if req.Auth.RefreshToken != nil && *req.Auth.RefreshToken == "valid" {
-			api.WriteLogoutUser200Response(w, api.LogoutUser200Response{
-				Body: api.LogoutUser200ResponseBody{
-					Message: "RefreshToken Logout successful",
-				},
-			})
-		} else if req.Auth.SessionToken != nil && *req.Auth.SessionToken == "valid" {
-			api.WriteLogoutUser200Response(w, api.LogoutUser200Response{
-				Body: api.LogoutUser200ResponseBody{
-					Message: "SessionToken Logout successful",
-				},
-			})
+	if req.APIKeyAuth == "valid" {
+		if req.RefreshTokenAuth != nil && *req.RefreshTokenAuth == "valid" {
+			req.Write200(
+				w,
+				api.NewLogoutUser200(
+					api.NewLogoutUserResponseBody(
+						"RefreshToken Logout successful",
+					),
+				),
+			)
+		} else if req.SessionTokenAuth != nil && *req.SessionTokenAuth == "valid" {
+			req.Write200(
+				w,
+				api.NewLogoutUser200(
+					api.NewLogoutUserResponseBody(
+						"SessionToken Logout successful",
+					),
+				),
+			)
 		} else {
 			debugMsg := "Invalid or missing token"
-			api.WriteLogoutUser400Response(w, api.LogoutUser400Response{
-				Body: api.LogoutUser400ResponseBody{
-					Error: api.LogoutUser400ResponseBodyError{
-						DebugMessage: &debugMsg,
-						ErrorMessage: "Unauthorized",
-					},
-				},
-			})
+			req.Write400(
+				w,
+				api.NewLogoutUser400(
+					api.NewErrorResponse(debugMsg),
+				),
+			)
 		}
 	} else {
 		debugMsg := "Invalid API key"
-		api.WriteLogoutUser400Response(w, api.LogoutUser400Response{
-			Body: api.LogoutUser400ResponseBody{
-				Error: api.LogoutUser400ResponseBodyError{
-					DebugMessage: &debugMsg,
-					ErrorMessage: "Unauthorized",
-				},
-			},
-		})
+		req.Write400(
+			w,
+			api.NewLogoutUser400(
+				api.NewErrorResponse(debugMsg),
+			),
+		)
 	}
+}
+
+func handleWhoAmI(w http.ResponseWriter, r *http.Request) {
+	if r.Method != api.WhoAmIReqHTTPMethod {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	req, err := api.ParseWhoAmIReq(w, r)
+	if err != nil {
+		debugMsg := err.Error()
+		fmt.Printf("Error parsing WhoAmI request: %s\n", debugMsg)
+		req.Write400(w)
+		return
+	}
+
+	if req.APIKeyAuth != "valid" {
+		debugMsg := "Invalid API key"
+		fmt.Printf("Error handling WhoAmI request: %s\n", debugMsg)
+		req.Write400(w)
+		return
+	}
+
+	if req.SessionTokenAuth != "valid" {
+		debugMsg := "Invalid Session token"
+		fmt.Printf("Error handling WhoAmI request: %s\n", debugMsg)
+		req.Write400(w)
+		return
+	}
+
+	userIdBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		debugMsg := err.Error()
+		fmt.Printf("Error reading WhoAmI request body: %s\n", debugMsg)
+		req.Write400(w)
+		return
+	}
+
+	req.Write200(w, api.NewWhoAmI200(10)) // To write the status code
+	w.Write(userIdBytes)                  // Write the raw body
 }
 
 func stdErr(exit bool, format string, a ...any) {
@@ -374,4 +390,14 @@ func stdErr(exit bool, format string, a ...any) {
 	if exit {
 		os.Exit(1)
 	}
+}
+
+func mapToApiUser(user User) *api.User {
+	var age *int64
+	if user.Age != nil {
+		ageVal := int64(*user.Age)
+		age = &ageVal
+	}
+	u := api.NewUser(user.Email, user.IsActive, user.ID, user.Name).WithAge(age)
+	return u
 }

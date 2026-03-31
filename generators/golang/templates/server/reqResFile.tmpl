@@ -1,0 +1,197 @@
+{{define "serverReqResFile"}}
+package {{.PackageName}}
+
+import (
+  "encoding/json"
+	"fmt"
+  "net/http"
+  "strconv"
+  "strings"
+)
+
+{{template "reqResGenerator" .}}
+{{$requestName := .Name}}
+// Parse{{.Name}} creates a new instance of {{.Name}} by parsing the http.Request
+func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) {
+  req := {{.Name}}{}
+
+  // Parse path parameters, if any
+  {{range .PathParams}}
+  val{{.Name}}, err := parse{{.Type}}Param(r.PathValue("{{.TransportName}}"), "path: {{.TransportName}}", {{.Required}})
+  if err != nil {
+    return nil, err
+  }
+  {{if .Required}}
+  req.{{.Name}} = *val{{.Name}}
+  {{else}}
+  req.{{.Name}} = val{{.Name}}
+  {{end}}
+  {{end}}
+
+  // Parse query parameters, if any
+  {{range .QueryParams}}
+  val{{.Name}}, err := parse{{.Type}}Param(r.URL.Query().Get("{{.TransportName}}"), "query: {{.TransportName}}", {{.Required}})
+  if err != nil {
+    return nil, err
+  }
+  {{if .Required}}
+  req.{{.Name}} = *val{{.Name}}
+  {{else}}
+  req.{{.Name}} = val{{.Name}}
+  {{end}}
+  {{end}}
+
+  // Parse header parameters, if any
+  {{range .HeaderParams}}
+  val{{.Name}}, err := parse{{.Type}}Param(r.Header.Get("{{.TransportName}}"), "header: {{.TransportName}}", {{.Required}})
+  if err != nil {
+    return nil, err
+  }
+  {{if .Required}}
+  req.{{.Name}} = *val{{.Name}}
+  {{else}}
+  req.{{.Name}} = val{{.Name}}
+  {{end}}
+  {{end}}
+
+  // Required auth, if any
+  {{range .AuthAll}}
+  {{if eq .Type "header"}}
+  val{{.Name}} := r.Header.Get("{{.TransportName}}")
+  val{{.Name}} = strings.TrimSpace(val{{.Name}})
+  if val{{.Name}} == "" {
+    return nil, fmt.Errorf("missing required authentication: header {{.TransportName}}")
+  } else {
+    req.{{.Name}}Auth = val{{.Name}}
+  }
+  {{end}}
+  {{end}}
+
+  // Atleast one auth, if any
+  {{if .AuthAny}}
+  anyAuthParamsPresent := false
+  authParamsList := "{{range .AuthAny}}{{.TransportName}}, {{end}}"
+  {{range .AuthAny}}
+  {{if eq .Type "header"}}
+  val{{.Name}} := r.Header.Get("{{.TransportName}}")
+  val{{.Name}} = strings.TrimSpace(val{{.Name}})
+  if val{{.Name}} != "" {
+    anyAuthParamsPresent = true
+    req.{{.Name}}Auth = &val{{.Name}}
+  }
+  {{end}}
+  {{end}}
+  if !anyAuthParamsPresent {
+    return nil, fmt.Errorf("at least one of the following authentication parameters is required: %s", authParamsList)
+  }
+  {{end}}
+
+  {{if and .RequestBodyName (not .RawBody)}}
+  // Parse request body
+  defer r.Body.Close()
+  bodyData := make(map[string]any)
+  {{if .MaxBodyBytes}}
+  maxBodyBytes := int64({{.MaxBodyBytes}})
+  {{else}}
+  maxBodyBytes := int64(256 << 10) // Default max body bytes: 256KB
+  {{end}}
+  r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+  err := json.NewDecoder(r.Body).Decode(&bodyData)
+  if err != nil {
+    return nil, fmt.Errorf("error parsing request body: %w", err)
+  }
+  body, err := Parse{{.RequestBodyName}}(bodyData)
+  if err != nil {
+    return nil, fmt.Errorf("error parsing request body: %w", err)
+  }
+  req.Body = body
+  {{else if .RawBody}}
+  // NOTE: RawBody is true, so request body will not be handled.
+  {{end}}
+
+  return &req, nil
+}
+
+{{range .Responses}}
+{{if or .Headers (or .ResponseBodyName .RawBody)}}
+func New{{.Name}}(
+  {{range .Headers}}
+  {{if .Required}}
+  {{.Name}} {{.Type}},
+  {{end}}
+  {{end}}
+  {{if .ResponseBodyName}}
+  body *{{.ResponseBodyName}},
+  {{end}}
+) *{{.Name}} {
+  return &{{.Name}}{
+    {{range .Headers}}
+    {{if .Required}}
+    {{.Name}}: {{.Name}},
+    {{end}}
+    {{end}}
+    {{if .ResponseBodyName}}
+    Body: body,
+    {{end}}
+  }
+}
+
+{{$responseName := .Name}}
+{{range .Headers}}
+{{if not .Required}}
+// With{{.Name}} sets the optional header parameter {{.Name}} and returns the modified {{ $responseName }} instance
+func (o *{{ $responseName }}) With{{.Name}}(value *{{.Type}}) *{{ $responseName }} {
+  o.{{.Name}} = value
+  return o
+}
+{{end}}
+{{end}}
+
+// Write{{.StatusCode}} writes the {{.Name}} response to the http.ResponseWriter
+// {{if .RawBody}}
+// RawBody is true, hence this function will only set the headers and write the status code, rest is to be done by the caller.
+// {{end}}
+// Note: THIS FUNCTION WILL CALL w.WriteHeader(), so ensure that no other calls to w.WriteHeader() are made before calling this function.
+func (r *{{$requestName}}) Write{{.StatusCode}}(w http.ResponseWriter, resp *{{.Name}}) error {
+  // Set headers, if any
+  {{range .Headers}}
+  {{if .Required}}
+  w.Header().Set("{{.TransportName}}", fmt.Sprintf("%v", resp.{{.Name}}))
+  {{else}}
+  if resp.{{.Name}} != nil {
+    w.Header().Set("{{.TransportName}}", fmt.Sprintf("%v", *resp.{{.Name}}))
+  }
+  {{end}}
+  {{end}}
+
+  {{if .ResponseBodyName}}
+  // Set Content-Type
+  w.Header().Set("Content-Type", "{{.ContentType}}")
+
+  // Set status code and write the header
+  w.WriteHeader({{.StatusCode}})
+
+  // Write body
+  return json.NewEncoder(w).Encode(resp.Body)
+   {{else}}
+  // Set status code and write the header as there are no body to write
+  w.WriteHeader({{.StatusCode}})
+  return nil
+  {{end}}
+}
+{{else}}
+// Write{{.StatusCode}} writes the {{.Name}} response to the http.ResponseWriter
+// {{if .Description}}
+// {{.Description}}
+// {{end}}
+// NOTE: THIS FUNCTION WILL CALL w.WriteHeader(), so ensure that no other calls to w.WriteHeader() are made before calling this function.
+//
+// Since there are no headers or body to write, this function will only set the status code in the response header.
+func (r *{{$requestName}}) Write{{.StatusCode}}(w http.ResponseWriter) error {
+  // Set status code and write the header as there are no headers or body to write
+  w.WriteHeader({{.StatusCode}})
+  return nil
+}
+{{end}}
+{{end}}
+{{end}}

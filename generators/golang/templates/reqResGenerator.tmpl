@@ -1,0 +1,92 @@
+{{define "reqResGenerator"}}
+
+const (
+  {{.Name}}HTTPMethod = "{{.Method}}"
+  {{.Name}}RoutePath   = "{{.Path}}"
+)
+
+{{if .Description}}// {{.Description}}{{end}}
+type {{.Name}} struct {
+  {{range .PathParams}}
+  // Source: path parameter "{{printf "{%s}" .TransportName}}"
+  //
+  {{template "paramGenerator" .}}
+  {{end}}
+
+  {{range .QueryParams}}
+  // Source: query parameter "{{.TransportName}}"
+  //
+  {{template "paramGenerator" .}}
+  {{end}}
+
+  {{range .HeaderParams}}
+  // Source: header parameter "{{.TransportName}}"
+  //
+  {{template "paramGenerator" .}}
+  {{end}}
+
+  {{if .AuthAll}}
+  // All of the below (upto AUTH-ALL-END comment) are required for authentication
+  {{range .AuthAll}}
+  // Required Authentication Method
+  // Source: {{.Type}} "{{.TransportName}}"
+  //{{if .Description}}
+  // {{.Description}}
+  //{{end}}{{if .Format}}
+  // Format (NOT ENFORCED): {{.Format}}
+  //{{end}}
+  {{.Name}}Auth string
+  {{end}}
+  // AUTH-ALL-END
+  {{end}}
+
+  {{if .AuthAny}}
+  // At least one of the following (upto AUTH-ANY-END) authentication methods is required
+  {{range .AuthAny}}
+  // Source: {{.Type}} "{{.TransportName}}"
+  //{{if .Description}}
+  // {{.Description}}
+  //{{end}}{{if .Format}}
+  // Format (NOT ENFORCED): {{.Format}}
+  //{{end}}
+  {{.Name}}Auth *string
+  {{end}}
+  // AUTH-ANY-END
+  {{end}}
+
+  {{if .RequestBodyName}}
+  // Request body
+  Body *{{.RequestBodyName}}
+  {{end}}
+
+  // NOTE: The RawBody field is not used here, as RequestBodyName and RawBody are mutually exclusive.
+  // RawBody is only used in the golang client sdk generation, since that will make NewRequest functions more ergonomic to use for endpoints without a request body schema.
+  // RawBody doesn't affect the structure of the request struct, and will not be unmarshalled/read by the server side NewRequest functions.
+}
+
+{{range .Responses}}
+{{if or .Headers (or .ResponseBodyName .RawBody)}}
+{{if .Description}}// {{.Description}}{{end}}
+type {{.Name}} struct {
+  {{range .Headers}}
+  // Source: header parameter "{{.TransportName}}"
+  //
+  {{template "paramGenerator" .}}
+  {{end}}
+
+  {{if .ResponseBodyName}}
+  // Response body
+  Body *{{.ResponseBodyName}}
+  {{else if .RawBody}}
+  // Raw response body. The HTTP response will be returned directly for this response, and it will be the responsibility of the caller to read/close the response body.
+  RawBody *http.Response
+  {{end}}
+}
+{{else}}
+// {{.Name}} represents a response with no headers and no response body
+{{if .Description}}// {{.Description}}
+{{end}}
+{{end}}
+{{end}}
+
+{{end}}

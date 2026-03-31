@@ -4,5 +4,5 @@
   * {{if .Required}}Required{{else}}Optional{{end}}
   * {{if .NonEmpty}} Must be non-empty{{end}}
   */
-  {{.Name}}: {{.Type}}{{if and (not .Required) (not .IsArray)}} | null{{end}};
+  {{.Name}}{{if and (not .Required) (not .IsArray)}}?{{end}}: {{if or (eq .Type "integer") (eq .Type "double")}}number{{else}}{{.Type}}{{end}};
 {{end}}

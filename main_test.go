@@ -61,38 +61,9 @@ func runTestForSpec(t *testing.T, workDir, specPath, serverPath, clientPath, tsC
 		}
 	}()
 
-	output, err := runCommandForOutput(t, clientPath, "go", "run", ".", httpServerURL)
-	if err != nil {
-		t.Logf("%s TEST FAILED: Failed to run generated client: %v", t.Name(), err)
-		os.Exit(1)
-	}
+	testGoSDKClient(t, clientPath)
 
-	clientResult := ClientResult{}
-
-	if err := json.Unmarshal([]byte(output), &clientResult); err != nil {
-		t.Logf("%s TEST FAILED: Failed to unmarshal client output:\n\tError: %v\n\tOutput: %s", t.Name(), err, output)
-		os.Exit(1)
-	}
-
-	allPassed := true
-	countNotPassed := 0
-
-	for test, pass := range clientResult {
-		if !pass {
-			allPassed = false
-			countNotPassed++
-			t.Logf("%s TEST GO-SDK FAILED: Test %s did not pass", t.Name(), test)
-		}
-	}
-
-	if allPassed {
-		t.Logf("%s TEST GO-SDK PASSED", t.Name())
-	} else {
-		t.Logf("%s TEST GO-SDK FAILED: Some (%d) tests did not pass", t.Name(), countNotPassed)
-		t.FailNow()
-	}
-
-	// TODO: ADD TESTS FOR TS CLIENT (SDK)
+	testTsSDKClient(t, tsClientPath)
 }
 
 func generateTestServerHelpers(t *testing.T, dir, specPath string) {
@@ -185,4 +156,74 @@ func waitForServerStartup(t *testing.T, url string) {
 
 	t.Logf("Server did not start within the expected time")
 	os.Exit(1)
+}
+
+func testGoSDKClient(t *testing.T, clientPath string) {
+	output, err := runCommandForOutput(t, clientPath, "go", "run", ".", httpServerURL)
+	if err != nil {
+		t.Logf("%s TEST FAILED: Failed to run generated go client: %v", t.Name(), err)
+		os.Exit(1)
+	}
+
+	clientResult := ClientResult{}
+
+	output = output[strings.Index(output, "{"):]
+
+	if err := json.Unmarshal([]byte(output), &clientResult); err != nil {
+		t.Logf("%s TEST FAILED: Failed to unmarshal go client output:\n\tError: %v\n\tOutput: %s", t.Name(), err, output)
+		os.Exit(1)
+	}
+
+	allPassed := true
+	countNotPassed := 0
+
+	for test, pass := range clientResult {
+		if !pass {
+			allPassed = false
+			countNotPassed++
+			t.Logf("%s TEST GO-SDK FAILED: Test %s did not pass", t.Name(), test)
+		}
+	}
+
+	if allPassed {
+		t.Logf("%s TEST GO-SDK PASSED", t.Name())
+	} else {
+		t.Logf("%s TEST GO-SDK FAILED: Some (%d) tests did not pass", t.Name(), countNotPassed)
+		t.FailNow()
+	}
+}
+
+func testTsSDKClient(t *testing.T, clientPath string) {
+	output, err := runCommandForOutput(t, clientPath, "npm", "run", "test-client", "--", httpServerURL)
+	if err != nil {
+		t.Logf("%s TEST FAILED: Failed to run generated TS client: %v", t.Name(), err)
+		os.Exit(1)
+	}
+
+	output = output[strings.Index(output, "{"):]
+
+	clientResult := ClientResult{}
+
+	if err := json.Unmarshal([]byte(output), &clientResult); err != nil {
+		t.Logf("%s TEST FAILED: Failed to unmarshal TS client output:\n\tError: %v\n\tOutput: %s", t.Name(), err, output)
+		os.Exit(1)
+	}
+
+	allPassed := true
+	countNotPassed := 0
+
+	for test, pass := range clientResult {
+		if !pass {
+			allPassed = false
+			countNotPassed++
+			t.Logf("%s TEST TS-SDK FAILED: Test %s did not pass", t.Name(), test)
+		}
+	}
+
+	if allPassed {
+		t.Logf("%s TEST TS-SDK PASSED", t.Name())
+	} else {
+		t.Logf("%s TEST TS-SDK FAILED: Some (%d) tests did not pass", t.Name(), countNotPassed)
+		t.FailNow()
+	}
 }

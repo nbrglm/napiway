@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"os"
 	"reflect"
@@ -14,27 +15,27 @@ import (
 )
 
 var (
-	VALID_API_KEY         = "valid"
-	VALID_SESSION_TOKEN   = "valid"
-	VALID_REFRESH_TOKEN   = "valid"
-	VALID_ADMIN_TOKEN     = "valid"
-	INVALID_API_KEY       = "invalid"
-	INVALID_SESSION_TOKEN = "invalid"
-	INVALID_REFRESH_TOKEN = "invalid"
-	INVALID_ADMIN_TOKEN   = "invalid"
-	PAGE_SIZE             = 20.0
-	AGE                   = 30.0
+	VALID_API_KEY               = "valid"
+	VALID_SESSION_TOKEN         = "valid"
+	VALID_REFRESH_TOKEN         = "valid"
+	VALID_ADMIN_TOKEN           = "valid"
+	INVALID_API_KEY             = "invalid"
+	INVALID_SESSION_TOKEN       = "invalid"
+	INVALID_REFRESH_TOKEN       = "invalid"
+	INVALID_ADMIN_TOKEN         = "invalid"
+	PAGE_SIZE             int64 = 20
+	AGE                   int64 = 30
 )
 
 type User struct {
-	ID       string   `json:"id"`
-	Name     string   `json:"name"`
-	Email    string   `json:"email"`
-	IsActive bool     `json:"is_active"`
-	Age      *float64 `json:"age"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	IsActive bool   `json:"is_active"`
+	Age      *int64 `json:"age"`
 }
 
-var age1 = 28.0
+var age1 int64 = 28
 
 var users = []User{
 	{
@@ -107,6 +108,16 @@ func main() {
 	// Store the result for printing later
 	structToMapStringBool(createUserResult, &result, "CreateUser")
 
+	// Test whoami
+	whoAmIResult, err := testWhoAmI(ctx, api)
+	if err != nil {
+		stdErr(false, "Test whoami failed: %v\n", err)
+		return
+	}
+
+	// Store the result for printing later
+	structToMapStringBool(whoAmIResult, &result, "WhoAmI")
+
 	// Print the final result
 	printResult(result)
 }
@@ -121,98 +132,70 @@ type UserLogoutResult struct {
 	ValidOperationWithRefreshToken bool
 }
 
-func testUserLogout(ctx context.Context, api *sdk.TestingAPI) (result UserLogoutResult, err error) {
-	_, err = api.LogoutUser(ctx, sdk.LogoutUserRequest{})
+func testUserLogout(ctx context.Context, api *sdk.TestingAPI) (UserLogoutResult, error) {
+	var result UserLogoutResult
+	noApiKeyReq := sdk.NewLogoutUserReq("")
+	_, err := api.LogoutUser(ctx, noApiKeyReq)
 	if err != nil {
-		if testingErr, ok := err.(*sdk.TestingAPIError); ok {
-			if testingErr.Reason == sdk.TestingAPIErrorReasonInvalidRequest {
-				result.WithMissingAPIKey = true
-			} else {
-				return result, err
-			}
+		if err.Reason == sdk.ReasonEncoding {
+			result.WithMissingAPIKey = true
 		} else {
 			return result, err
 		}
 	}
 
-	_, err = api.LogoutUser(ctx, sdk.LogoutUserRequest{
-		Auth: sdk.LogoutUserRequestAuthParams{
-			APIKey: &VALID_API_KEY,
-		},
-	})
+	validApiKeyReq := sdk.NewLogoutUserReq(VALID_API_KEY)
+	_, err = api.LogoutUser(ctx, validApiKeyReq)
 	if err != nil {
-		if testingErr, ok := err.(*sdk.TestingAPIError); ok {
-			if testingErr.Reason == sdk.TestingAPIErrorReasonInvalidRequest {
-				result.WithMissingTokens = true
-			}
+		if err.Reason == sdk.ReasonEncoding {
+			result.WithMissingTokens = true
 		} else {
 			return result, err
 		}
 	}
 
-	resInvalidAPIKey, err := api.LogoutUser(ctx, sdk.LogoutUserRequest{
-		Auth: sdk.LogoutUserRequestAuthParams{
-			APIKey:       &INVALID_API_KEY,
-			SessionToken: &VALID_SESSION_TOKEN,
-		},
-	})
+	invalidApiKeyReq := sdk.NewLogoutUserReq(INVALID_API_KEY).WithSessionTokenAuth(&VALID_SESSION_TOKEN)
+	invalidApiKeyResp, err := api.LogoutUser(ctx, invalidApiKeyReq)
 	if err != nil {
 		return result, err
 	}
-	if resInvalidAPIKey.StatusCode == 400 {
+	if invalidApiKeyResp.StatusCode == 400 {
 		result.WithInvalidAPIKey = true
 	}
 
-	resInvalidRefreshToken, err := api.LogoutUser(ctx, sdk.LogoutUserRequest{
-		Auth: sdk.LogoutUserRequestAuthParams{
-			APIKey:       &VALID_API_KEY,
-			RefreshToken: &INVALID_REFRESH_TOKEN,
-		},
-	})
+	invalidRefreshTokenReq := sdk.NewLogoutUserReq(VALID_API_KEY).WithRefreshTokenAuth(&INVALID_REFRESH_TOKEN)
+	invalidRefreshTokenResp, err := api.LogoutUser(ctx, invalidRefreshTokenReq)
 	if err != nil {
 		return result, err
 	}
-	if resInvalidRefreshToken.StatusCode == 400 {
+	if invalidRefreshTokenResp.StatusCode == 400 {
 		result.WithInvalidRefreshToken = true
 	}
 
-	resInvalidSessionToken, err := api.LogoutUser(ctx, sdk.LogoutUserRequest{
-		Auth: sdk.LogoutUserRequestAuthParams{
-			APIKey:       &VALID_API_KEY,
-			SessionToken: &INVALID_SESSION_TOKEN,
-		},
-	})
+	invalidSessionTokenReq := sdk.NewLogoutUserReq(VALID_API_KEY).WithSessionTokenAuth(&INVALID_SESSION_TOKEN)
+	invalidSessionTokenResp, err := api.LogoutUser(ctx, invalidSessionTokenReq)
 	if err != nil {
 		return result, err
 	}
-	if resInvalidSessionToken.StatusCode == 400 {
+	if invalidSessionTokenResp.StatusCode == 400 {
 		result.WithInvalidSessionToken = true
 	}
 
-	resValidSessionToken, err := api.LogoutUser(ctx, sdk.LogoutUserRequest{
-		Auth: sdk.LogoutUserRequestAuthParams{
-			APIKey:       &VALID_API_KEY,
-			SessionToken: &VALID_SESSION_TOKEN,
-		},
-	})
+	validSessionTokenReq := sdk.NewLogoutUserReq(VALID_API_KEY).WithSessionTokenAuth(&VALID_SESSION_TOKEN)
+	validSessionTokenResp, err := api.LogoutUser(ctx, validSessionTokenReq)
 	if err != nil {
 		return result, err
 	}
-	if resValidSessionToken.StatusCode == 200 && strings.Contains(resValidSessionToken.Response200.Body.Message, "SessionToken") {
+	if validSessionTokenResp.StatusCode == 200 && strings.Contains(validSessionTokenResp.Response200.Body.Message, "SessionToken") {
 		result.ValidOperationWithSessionToken = true
 	}
 
-	resValidRefreshToken, err := api.LogoutUser(ctx, sdk.LogoutUserRequest{
-		Auth: sdk.LogoutUserRequestAuthParams{
-			APIKey:       &VALID_API_KEY,
-			RefreshToken: &VALID_REFRESH_TOKEN,
-		},
-	})
+	validRefreshTokenReq := sdk.NewLogoutUserReq(VALID_API_KEY).WithRefreshTokenAuth(&VALID_REFRESH_TOKEN)
+	validRefreshTokenResp, err := api.LogoutUser(ctx, validRefreshTokenReq)
 	if err != nil {
-		stdErr(false, "LogoutUser request with valid refresh token failed: %v\n", err)
 		return result, err
 	}
-	if resValidRefreshToken.StatusCode == 200 && strings.Contains(resValidRefreshToken.Response200.Body.Message, "RefreshToken") {
+	if validRefreshTokenResp.StatusCode == 200 && strings.Contains(validRefreshTokenResp.Response200.Body.Message, "RefreshToken") {
 		result.ValidOperationWithRefreshToken = true
 	}
 
@@ -228,41 +211,31 @@ type ListUsersResult struct {
 	ValidOperationWithQueryParams    bool
 }
 
-func testListUsers(ctx context.Context, api *sdk.TestingAPI) (result ListUsersResult, err error) {
-	_, err = api.ListUsers(ctx, sdk.ListUsersRequest{})
+func testListUsers(ctx context.Context, api *sdk.TestingAPI) (ListUsersResult, error) {
+	var result ListUsersResult
+
+	invalidReq := sdk.NewListUsersReq("", "")
+	_, err := api.ListUsers(ctx, invalidReq)
 	if err != nil {
-		if testingErr, ok := err.(*sdk.TestingAPIError); ok {
-			if testingErr.Reason == sdk.TestingAPIErrorReasonInvalidRequest {
-				result.WithMissingAPIKey = true
-			} else {
-				return result, err
-			}
+		if err.Reason == sdk.ReasonEncoding {
+			result.WithMissingAPIKey = true
 		} else {
 			return result, err
 		}
 	}
 
-	_, err = api.ListUsers(ctx, sdk.ListUsersRequest{
-		Auth: sdk.ListUsersRequestAuthParams{
-			APIKey: &VALID_API_KEY,
-		},
-	})
+	validApiKeyReq := sdk.NewListUsersReq("", VALID_API_KEY)
+	_, err = api.ListUsers(ctx, validApiKeyReq)
 	if err != nil {
-		if testingErr, ok := err.(*sdk.TestingAPIError); ok {
-			if testingErr.Reason == sdk.TestingAPIErrorReasonInvalidRequest {
-				result.WithMissingAdminToken = true
-			}
+		if err.Reason == sdk.ReasonEncoding {
+			result.WithMissingAdminToken = true
 		} else {
 			return result, err
 		}
 	}
 
-	resInvalidAPIKey, err := api.ListUsers(ctx, sdk.ListUsersRequest{
-		Auth: sdk.ListUsersRequestAuthParams{
-			APIKey:     &INVALID_API_KEY,
-			AdminToken: &VALID_ADMIN_TOKEN,
-		},
-	})
+	reqInvalidAPIKey := sdk.NewListUsersReq(VALID_ADMIN_TOKEN, INVALID_API_KEY)
+	resInvalidAPIKey, err := api.ListUsers(ctx, reqInvalidAPIKey)
 	if err != nil {
 		return result, err
 	}
@@ -270,12 +243,8 @@ func testListUsers(ctx context.Context, api *sdk.TestingAPI) (result ListUsersRe
 		result.WithInvalidAPIKey = true
 	}
 
-	resInvalidAdminToken, err := api.ListUsers(ctx, sdk.ListUsersRequest{
-		Auth: sdk.ListUsersRequestAuthParams{
-			APIKey:     &VALID_API_KEY,
-			AdminToken: &INVALID_ADMIN_TOKEN,
-		},
-	})
+	reqInvalidAdminToken := sdk.NewListUsersReq(INVALID_ADMIN_TOKEN, VALID_API_KEY)
+	resInvalidAdminToken, err := api.ListUsers(ctx, reqInvalidAdminToken)
 	if err != nil {
 		return result, err
 	}
@@ -283,12 +252,8 @@ func testListUsers(ctx context.Context, api *sdk.TestingAPI) (result ListUsersRe
 		result.WithInvalidAdminToken = true
 	}
 
-	resValidWithoutQueryParams, err := api.ListUsers(ctx, sdk.ListUsersRequest{
-		Auth: sdk.ListUsersRequestAuthParams{
-			APIKey:     &VALID_API_KEY,
-			AdminToken: &VALID_ADMIN_TOKEN,
-		},
-	})
+	reqValidWithoutQueryParams := sdk.NewListUsersReq(VALID_ADMIN_TOKEN, VALID_API_KEY)
+	resValidWithoutQueryParams, err := api.ListUsers(ctx, reqValidWithoutQueryParams)
 	if err != nil {
 		return result, err
 	}
@@ -296,13 +261,8 @@ func testListUsers(ctx context.Context, api *sdk.TestingAPI) (result ListUsersRe
 		result.ValidOperationWithoutQueryParams = true
 	}
 
-	resValidWithQueryParams, err := api.ListUsers(ctx, sdk.ListUsersRequest{
-		Auth: sdk.ListUsersRequestAuthParams{
-			APIKey:     &VALID_API_KEY,
-			AdminToken: &VALID_ADMIN_TOKEN,
-		},
-		PageSize: &PAGE_SIZE,
-	})
+	reqValidWithQueryParams := sdk.NewListUsersReq(VALID_ADMIN_TOKEN, VALID_API_KEY).WithPageSize(&PAGE_SIZE)
+	resValidWithQueryParams, err := api.ListUsers(ctx, reqValidWithQueryParams)
 	if err != nil {
 		return result, err
 	}
@@ -317,81 +277,68 @@ type GetUserResult struct {
 	ValidOperation   bool
 }
 
-func testGetUser(ctx context.Context, api *sdk.TestingAPI) (result GetUserResult, err error) {
-	_, err = api.GetUser(ctx, sdk.GetUserRequest{
-		Auth: sdk.GetUserRequestAuthParams{
-			APIKey:       &VALID_API_KEY,
-			SessionToken: &VALID_SESSION_TOKEN,
-		},
-	})
+func testGetUser(ctx context.Context, api *sdk.TestingAPI) (GetUserResult, error) {
+	var result GetUserResult
+	invalidReq := sdk.NewGetUserReq("", VALID_API_KEY, VALID_SESSION_TOKEN)
+	_, err := api.GetUser(ctx, invalidReq)
 	if err != nil {
-		if testingErr, ok := err.(*sdk.TestingAPIError); ok {
-			if testingErr.Reason == sdk.TestingAPIErrorReasonInvalidRequest {
-				result.WithoutPathParam = true
-			} else {
-				return result, err
-			}
+		if err.Reason == sdk.ReasonEncoding {
+			result.WithoutPathParam = true
 		} else {
 			return result, err
 		}
 	}
 
-	resValid, err := api.GetUser(ctx, sdk.GetUserRequest{
-		Auth: sdk.GetUserRequestAuthParams{
-			APIKey:       &VALID_API_KEY,
-			SessionToken: &VALID_SESSION_TOKEN,
-		},
-		UserId: "1",
-	})
+	reqValid := sdk.NewGetUserReq("1", VALID_API_KEY, VALID_SESSION_TOKEN)
+	resValid, err := api.GetUser(ctx, reqValid)
 	if err != nil {
 		return result, err
 	}
-	if resValid.StatusCode == 200 && resValid.Response200.Body.User.UserId == "1" {
+	if resValid.StatusCode == 200 && resValid.Response200.Body.UserId == "1" {
 		result.ValidOperation = true
 	}
 	return result, nil
 }
 
 type CreateUserResult struct {
-	ValidOperationWithOptionalFieldsMissing bool
-	ValidOperationWithOptionalFieldPresent  bool
-	ValidOperationWithArbitraryData         bool
+	ValidOperationWithoutOptionalField bool
+	ValidOperationWithOptionalField    bool
+	ValidOperationWithArbitraryData    bool
 }
 
-func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (result CreateUserResult, err error) {
-	resOptionalFieldMissing, err := api.CreateUser(ctx, sdk.CreateUserRequest{
-		Auth: sdk.CreateUserRequestAuthParams{
-			APIKey:     &VALID_API_KEY,
-			AdminToken: &VALID_ADMIN_TOKEN,
-		},
-		Body: sdk.CreateUserRequestBody{
-			Email:    "test@example.com",
-			UserName: "Test User",
-		},
-	})
+func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (CreateUserResult, error) {
+	var result CreateUserResult
+
+	reqOptionalFieldMissing := sdk.NewCreateUserReq(
+		VALID_ADMIN_TOKEN,
+		VALID_API_KEY,
+		sdk.NewCreateUserRequestBody(
+			"test@example.com",
+			"Test User",
+		),
+	)
+	resOptionalFieldMissing, err := api.CreateUser(ctx, reqOptionalFieldMissing)
 	if err != nil {
 		return result, err
 	}
 	if resOptionalFieldMissing.StatusCode == 201 && resOptionalFieldMissing.Response201.Body.User.Email == "test@example.com" {
-		result.ValidOperationWithOptionalFieldsMissing = true
+		result.ValidOperationWithoutOptionalField = true
 	}
 
-	resOptionalFieldPresent, err := api.CreateUser(ctx, sdk.CreateUserRequest{
-		Auth: sdk.CreateUserRequestAuthParams{
-			APIKey:     &VALID_API_KEY,
-			AdminToken: &VALID_ADMIN_TOKEN,
-		},
-		Body: sdk.CreateUserRequestBody{
-			Age:      &AGE,
-			Email:    "test@example.com",
-			UserName: "Test User",
-		},
-	})
+	reqOptionalFieldPresent := sdk.NewCreateUserReq(
+		VALID_ADMIN_TOKEN,
+		VALID_API_KEY,
+		sdk.NewCreateUserRequestBody(
+			"test@example.com",
+			"Test User",
+		).WithAge(&AGE),
+	)
+	resOptionalFieldPresent, err := api.CreateUser(ctx, reqOptionalFieldPresent)
 	if err != nil {
 		return result, err
 	}
-	if resOptionalFieldPresent.StatusCode == 201 && resOptionalFieldPresent.Response201.Body.User.Email == "test@example.com" {
-		result.ValidOperationWithOptionalFieldPresent = true
+	if resOptionalFieldPresent.StatusCode == 201 && resOptionalFieldPresent.Response201.Body.User.Age != nil && *resOptionalFieldPresent.Response201.Body.User.Age == AGE {
+		result.ValidOperationWithOptionalField = true
 	}
 
 	arbitraryDataSent := map[string]any{
@@ -400,19 +347,15 @@ func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (result CreateUser
 		"key3": true,
 	}
 
-	resWithArbitraryData, err := api.CreateUser(ctx, sdk.CreateUserRequest{
-		Auth: sdk.CreateUserRequestAuthParams{
-			APIKey:     &VALID_API_KEY,
-			AdminToken: &VALID_ADMIN_TOKEN,
-		},
-		Body: sdk.CreateUserRequestBody{
-			Age:           &AGE,
-			Email:         "test@example.com",
-			UserName:      "Test User",
-			ArbitraryData: &arbitraryDataSent,
-		},
-	})
-
+	reqWithArbitraryData := sdk.NewCreateUserReq(
+		VALID_ADMIN_TOKEN,
+		VALID_API_KEY,
+		sdk.NewCreateUserRequestBody(
+			"test@example.com",
+			"Test User",
+		).WithArbitraryData(&arbitraryDataSent),
+	)
+	resWithArbitraryData, err := api.CreateUser(ctx, reqWithArbitraryData)
 	if err != nil {
 		return result, err
 	}
@@ -422,6 +365,32 @@ func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (result CreateUser
 		}
 	}
 
+	return result, nil
+}
+
+type WhoAmIResult struct {
+	ValidRawBody bool
+}
+
+func testWhoAmI(ctx context.Context, api *sdk.TestingAPI) (WhoAmIResult, error) {
+	var result WhoAmIResult
+
+	userId := "test@example.com"
+	req := sdk.NewWhoAmIReq(VALID_API_KEY, VALID_SESSION_TOKEN)
+	res, err := api.WhoAmI(ctx, req, strings.NewReader(userId))
+	if err != nil {
+		return result, err
+	}
+
+	if res.StatusCode == 200 {
+		if bytes, err := io.ReadAll(res.Response200.RawBody.Body); err != nil {
+			return result, err
+		} else {
+			if userId == string(bytes) {
+				result.ValidRawBody = true
+			}
+		}
+	}
 	return result, nil
 }
 

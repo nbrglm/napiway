@@ -1,0 +1,142 @@
+{{define "sdkReqResFile"}}
+
+package {{.PackageName}}
+
+import (
+  "encoding/json"
+	"fmt"
+  "net/http"
+  "strconv"
+  "strings"
+)
+
+{{template "reqResGenerator" .}}
+
+// New{{.Name}} creates a new instance of {{.Name}} with required fields as parameters
+func New{{.Name}}(
+  {{range .PathParams}}
+  {{if .Required}}
+  {{ .Name }} {{.Type}},
+  {{end}}
+  {{end}}
+  {{range .QueryParams}}
+  {{if .Required}}
+  {{ .Name }} {{.Type}},
+  {{end}}
+  {{end}}
+  {{range .HeaderParams}}
+  {{if .Required}}
+  {{ .Name }} {{.Type}},
+  {{end}}
+  {{end}}
+  {{range .AuthAll}}
+  {{.Name}}Auth string,
+  {{end}}
+  {{if .RequestBodyName}}
+  Body *{{.RequestBodyName}},
+  {{end}}
+) *{{.Name}} {
+  return &{{.Name}}{
+    {{range .PathParams}}
+    {{if .Required}}
+    {{ .Name }}: {{.Name}},
+    {{end}}
+    {{end}}
+    {{range .QueryParams}}
+    {{if .Required}}
+    {{ .Name }}: {{.Name}},
+    {{end}}
+    {{end}}
+    {{range .HeaderParams}}
+    {{if .Required}}
+    {{ .Name }}: {{.Name}},
+    {{end}}
+    {{end}}
+    {{range .AuthAll}}
+    {{.Name}}Auth: {{.Name}}Auth,
+    {{end}}
+    {{if .RequestBodyName}}
+    Body: Body,
+    {{end}}
+  }
+}
+
+{{ $requestName := .Name }}
+{{range .PathParams}}
+{{if not .Required}}
+// With{{.Name}} sets the optional path parameter {{.Name}} and returns the modified {{ $requestName }} instance
+func (o *{{ $requestName }}) With{{.Name}}(value *{{.Type}}) *{{ $requestName }} {
+  o.{{.Name}} = value
+  return o
+}
+{{end}}
+{{end}}
+
+{{range .QueryParams}}
+{{if not .Required}}
+// With{{.Name}} sets the optional query parameter {{.Name}} and returns the modified {{ $requestName }} instance
+func (o *{{ $requestName }}) With{{.Name}}(value *{{.Type}}) *{{ $requestName }} {
+  o.{{.Name}} = value
+  return o
+}
+{{end}}
+{{end}}
+
+{{range .HeaderParams}}
+{{if not .Required}}
+// With{{.Name}} sets the optional header parameter {{.Name}} and returns the modified {{ $requestName }} instance
+func (o *{{ $requestName }}) With{{.Name}}(value *{{.Type}}) *{{ $requestName }} {
+  o.{{.Name}} = value
+  return o
+}
+{{end}}
+{{end}}
+
+{{range .AuthAny}}
+// With{{.Name}}Auth sets the optional authentication parameter {{.Name}}Auth and returns the modified {{ $requestName }} instance
+func (o *{{ $requestName }}) With{{.Name}}Auth(value *string) *{{ $requestName }} {
+  o.{{.Name}}Auth = value
+  return o
+}
+{{end}}
+
+{{if .RawBody}}
+// NOTE: RawBody is true, so request body will not be handled.
+{{end}}
+
+{{range .Responses}}
+{{if or .Headers (or .ResponseBodyName .RawBody)}}
+// Parse{{.Name}} creates a new instance of {{.Name}} by parsing a map[string]any
+func Parse{{.Name}}(resp *http.Response) (*{{.Name}}, error) {
+  result := new({{.Name}})
+  {{if .Headers}}
+  {{range .Headers}}
+  header{{.Name}}, err := parse{{.Type}}Param(resp.Header.Get("{{.TransportName}}"), "header: {{.TransportName}}", {{.Required}})
+  if err != nil {
+    return nil, err
+  }
+  {{if .Required}}
+  result.{{.Name}} = *header{{.Name}}
+  {{else}}
+  result.{{.Name}} = header{{.Name}}
+  {{end}}
+  {{end}}
+  {{end}}
+
+  {{if and .ResponseBodyName (not .RawBody)}}
+  defer resp.Body.Close()
+  if result.Body == nil {
+    result.Body = new({{.ResponseBodyName}})
+  }
+  decoder := json.NewDecoder(resp.Body)
+  if err := decoder.Decode(result.Body); err != nil {
+    return nil, fmt.Errorf("error decoding response body for {{.Name}}: %w", err)
+  }
+  {{else if .RawBody}}
+  result.RawBody = resp
+  {{end}}
+  return result, nil
+}
+{{end}}
+{{end}}
+{{end}}

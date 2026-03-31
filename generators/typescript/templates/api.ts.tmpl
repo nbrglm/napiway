@@ -1,16 +1,19 @@
 {{define "api.ts"}}
 {{$clientName := .ClientName}}
-import { {{$clientName}}Error } from "./models";
 import * as Models from "./models";
+export * from "./models";
+import { {{$clientName}}Error, ReasonTransport, ReasonEncoding, ReasonUnexpected } from "./models";
 
-export const {{$clientName}}Version = "{{.ClientVersion}}";
+export const {{$clientName}}Version = "{{.ClientVersion}}"
 
 export class {{.ClientName}} {
   private baseURL: string;
   private headers: Record<string, string>;
+  private fetch: typeof fetch;
 
-  constructor(baseURL: string) {
+  constructor(baseURL: string, customFetch?: typeof fetch) {
     this.baseURL = baseURL;
+    this.fetch = customFetch || fetch;
     this.headers = {
       'Accept': 'application/json',
       'User-Agent': '{{.ClientName}}-TypeScriptSDK/{{.ClientVersion}}'
@@ -18,55 +21,87 @@ export class {{.ClientName}} {
   }
 
   private addHeaders(request: RequestInit): RequestInit {
-    request.headers = { ...this.headers, ...request.headers };
+    request.headers = {...this.headers, ...request.headers };
     return request;
   }
 
   {{range .Endpoints}}
   {{$resultTypeName := printf "%sResult" .Name}}
   // Throws {{$clientName}}Error, or a network error
-  async {{.Name}}(params: Models.{{.Request.Name}}): Promise<{{$resultTypeName}}> {
+  async {{.Name}}(params: Models.{{.Request.Name}}{{if .Request.RawBody}}, body: BodyInit{{end}}): Promise<{{$resultTypeName}}> {
     var result = {} as {{$resultTypeName}};
-    Models.Validate{{.Request.Name}}(params);
 
     var path = "{{.Request.Path}}";
     {{range .Request.PathParams}}
-    var pathParam{{.Name}} = paramToString(params.{{.Name}}, "path parameter: {{.Name}}", "{{.Type}}", {{.Required}});
+    var pathParam{{.Name}} = paramToString(params.{{.Name}}, "path parameter: {{.TransportName}}", "{{.Type}}", {{.Required}});
     path = path.replace("{{printf "{%s}" .TransportName}}", encodeURIComponent(pathParam{{.Name}}));
     {{end}}
-    const url = new URL(this.baseURL + path);
+
+    const url = new URL(path, this.baseURL);
     {{range .Request.QueryParams}}
-    var queryParam{{.Name}} = paramToString(params.{{.Name}}, "query parameter: {{.Name}}", "{{.Type}}", {{.Required}});
-    if (queryParam{{.Name}} !== "") {
+    var queryParam{{.Name}} = paramToString(params.{{.Name}}, "query parameter: {{.TransportName}}", "{{.Type}}", {{.Required}});
+    if (queryParam{{.Name}} != "") {
       url.searchParams.append("{{.TransportName}}", queryParam{{.Name}});
     }
     {{end}}
 
     var requestInit: RequestInit = {
       method: "{{.Request.Method}}",
-    }
+    };
     {{range .Request.HeaderParams}}
-    var header{{.Name}} = paramToString(params.{{.Name}}, "header parameter: {{.Name}}", "{{.Type}}", {{.Required}});
-    requestInit.headers = { ...requestInit.headers, "{{.TransportName}}": header{{.Name}} };
+    var header{{.Name}} = paramToString(params.{{.Name}}, "header: {{.TransportName}}", "{{.Type}}", {{.Required}});
+    requestInit.headers = {...requestInit.headers, "{{.TransportName}}": header{{.Name}});
+    {{end}}
+    {{range .Request.AuthAll}}
+    {{if eq .Type "header"}}
+    var auth{{.Name}} = paramToString(params.{{.Name}}Auth, "auth-header: {{.TransportName}}", "string", true);
+    requestInit.headers = {...requestInit.headers, "{{.TransportName}}": auth{{.Name}}};
+    {{end}}
+    {{end}}
+    {{if .Request.AuthAny}}
+    var numAuthParamsSet = 0;
+    {{range .Request.AuthAny}}
+    {{if eq .Type "header"}}
+    try {
+      var auth{{.Name}} = paramToString(params.{{.Name}}Auth, "auth-header: {{.TransportName}}", "string", true);
+      requestInit.headers = {...requestInit.headers, "{{.TransportName}}": auth{{.Name}}};
+      numAuthParamsSet++;
+    } catch (e) {
+      // do nothing if it's a {{$clientName}}Error, since we mandated the setting of the param to check if it's given or not even though it's a set-one-of auth param.
+      if (!(e instanceof {{$clientName}}Error)) {
+        throw e;
+      }
+    }
+    {{end}}
+    {{end}}
+
+    if (numAuthParamsSet != 1) {
+      throw new {{$clientName}}Error(ReasonEncoding, `Exactly one auth param must be set, but ${numAuthParamsSet} were set instead`);
+    }
     {{end}}
     {{if .Request.RequestBodyName}}
     requestInit.body = JSON.stringify(params.Body);
-    requestInit.headers = { ...requestInit.headers, 'Content-Type': 'application/json' };
+    requestInit.headers = { ...requestInit.headers, "Content-Type": "application/json"};
+    {{else if .Request.RawBody}}
+    requestInit.body = body;
     {{end}}
     const request = new Request(url, this.addHeaders(requestInit));
-    const response = await fetch(request);
+    const response = await this.fetch(request);
     result.StatusCode = response.status;
     switch (response.status) {
-    {{range .Responses}}
+    {{range .Request.Responses}}
+      {{if or .Headers (or .ResponseBodyName .RawBody)}}
       case {{.StatusCode}}:
-        result.Response{{.StatusCode}} = await Models.New{{.Name}}(response);
+        result.Response{{.StatusCode}} = await Models.Parse{{.Name}}(response)
         break;
+      {{else}}
+      // {{.Name}} is a status-code only response
+      // {{if .Description}}{{.Description}}{{end}}
+      {{end}}
     {{end}}
       default:
-        result.UnknownResponse = {
-          StatusCode: response.status,
-          Resp: response,
-        };
+        result.UnknownResponse = response;
+        break;
     }
     return result;
   }
@@ -76,34 +111,46 @@ export class {{.ClientName}} {
 {{range .Endpoints}}
 export type {{.Name}}Result = {
   StatusCode: number;
-  {{range .Responses}}
+  {{range .Request.Responses}}
+  {{if or .Headers (or .ResponseBodyName .RawBody)}}
   Response{{.StatusCode}}: Models.{{.Name}};
   {{end}}
-  UnknownResponse: UnknownStatusResponse;
-}
+  {{end}}
+  UnknownResponse: Response;
+};
 {{end}}
-
-export type UnknownStatusResponse = {
-  StatusCode: number;
-  Resp: Response;
-}
 
 function paramToString(param: any, paramDescription: string, expectedType: string, required: boolean): string {
   if (param === undefined || param === null) {
     if (required) {
-      throw new {{$clientName}}Error(Models.{{$clientName}}ErrorReasonInvalidRequest, `${paramDescription} is required but was not provided`);
+      throw new {{$clientName}}Error(ReasonEncoding, `${paramDescription} is required but was not provided`);
     } else {
       return "";
     }
   }
 
   if (typeof param === "string") {
+    if (required && param.trim() === "") {
+      throw new {{$clientName}}Error(ReasonEncoding, `${paramDescription} is required but was not provided`);
+    }
     return param;
   } else if (typeof param === "number" || typeof param === "boolean") {
+    if (expectedType == "int") {
+      var i = parseInt(param.toString());
+      if (isNaN(i)) {
+        throw new {{$clientName}}Error(ReasonEncoding, `${paramDescription} should be an integer but got ${param}`);
+      }
+      return i.toString();
+    } else if (expectedType == "double") {
+      var d = parseFloat(param.toString());
+      if (isNaN(d)) {
+        throw new {{$clientName}}Error(ReasonEncoding, `${paramDescription} should be a number but got ${param}`);
+      }
+      return d.toString();
+    }
     return param.toString();
   } else {
-    throw new {{$clientName}}Error(Models.{{$clientName}}ErrorReasonInvalidRequest, `${paramDescription} should be of type ${expectedType} but got ${typeof param}`);
+    throw new {{$clientName}}Error(ReasonEncoding, `${paramDescription} should be of type ${expectedType} but got ${typeof param}`);
   }
 }
-
 {{end}}

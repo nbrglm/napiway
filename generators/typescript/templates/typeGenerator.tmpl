@@ -1,5 +1,21 @@
 {{define "typeGenerator"}}
-export type {{.Name}} = {
-  {{range .Fields}}{{template "fieldGenerator" .}}{{end}}
+{{range .Types}}
+{{if .Description}}
+/**
+ * {{.Description}}
+ */
+{{end}}
+export interface {{.Name}} {
+  {{range .Fields}}
+  {{template "fieldGenerator" .}}
+  {{end}}
 }
+
+/**
+ * create{{.Name}} creates a new instance of {{.Name}} with required fields as parameters
+ */
+export function create{{.Name}}(props: {{.Name}}): {{.Name}} {
+  return props;
+}
+{{end}}
 {{end}}

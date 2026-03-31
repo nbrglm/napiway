@@ -8,6 +8,23 @@ import (
 
 var TestingAPIVersion = "1.0.0"
 
+func parseint64Param(param string, paramName string, required bool) (*int64, error) {
+	param = strings.TrimSpace(param)
+	if param == "" {
+		if required {
+			return nil, fmt.Errorf("missing required parameter '%s'", paramName)
+		}
+		return nil, nil
+	}
+
+	value, err := strconv.ParseInt(strings.TrimSpace(param), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid integer parameter '%s': %v", paramName, err)
+	}
+
+	return &value, nil
+}
+
 func parsefloat64Param(param string, paramName string, required bool) (*float64, error) {
 	param = strings.TrimSpace(param)
 	if param == "" {
@@ -82,6 +99,20 @@ func paramToString(param interface{}, paramName string, goType string, required 
 		}
 		if ptrValue != nil {
 			strValue = fmt.Sprintf("%f", *ptrValue)
+		}
+	case "int64":
+		intValue, ok := param.(int64)
+		if !ok {
+			return "", fmt.Errorf("invalid int64 parameter '%s'", paramName)
+		}
+		strValue = fmt.Sprintf("%d", intValue)
+	case "*int64":
+		ptrValue, ok := param.(*int64)
+		if !ok {
+			return "", fmt.Errorf("invalid *int64 parameter '%s'", paramName)
+		}
+		if ptrValue != nil {
+			strValue = fmt.Sprintf("%d", *ptrValue)
 		}
 	case "bool":
 		boolValue, ok := param.(bool)

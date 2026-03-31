@@ -3,5 +3,5 @@
   * 
   * {{if .Required}}Required{{else}}Optional{{end}}
   */
-  {{.Name}}{{if not .Required}}?{{end}}: {{.Type}}{{if not .Required}} | undefined{{end}};
+  {{.Name}}{{if not .Required}}?{{end}}: {{if or (eq .Type "integer") (eq .Type "double")}}number{{else}}{{.Type}}{{end}};
 {{end}}

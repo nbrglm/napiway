@@ -77,7 +77,7 @@ func generate(cmd *cobra.Command, args []string) {
 	}
 
 	if cfg.GoServer != nil {
-		err = golang.GenerateServerHelpers(*cfg.GoServer, cfg.Spec)
+		err = golang.GenerateServerHelpers(cfg.GoServer, cfg)
 		if err != nil {
 			panic(err)
 		}
@@ -85,16 +85,15 @@ func generate(cmd *cobra.Command, args []string) {
 	}
 
 	if cfg.GoSDK != nil {
-		err = golang.GenerateGoSDK(*cfg.GoSDK, cfg.Spec)
+		err = golang.GenerateGoSDK(cfg.GoSDK, cfg)
 		if err != nil {
 			panic(err)
 		}
 		cmd.Println("Go SDK generated successfully!")
 	}
 
-	// TODO: Add TypeScript SDK generation
 	if cfg.TsSDK != nil {
-		err := typescript.GenerateTSSDK(*cfg.TsSDK, cfg.Spec)
+		err := typescript.GenerateTSSDK(*cfg.TsSDK, cfg)
 		if err != nil {
 			panic(err)
 		}

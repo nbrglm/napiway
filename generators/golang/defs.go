@@ -1,228 +1,145 @@
 package golang
 
-// SDK FILES DEFINITIONS
-
-type GoSdkClientAndTypesFileTemplateData struct {
-	// Package name for the SDK client
+type GoTypesFileData struct {
 	PackageName string
 
-	// Name of the SDK client struct
-	ClientName string
+	Types []TypeData
+}
 
-	// Version of the SDK client
-	//
-	// Matches the spec.version from the Spec File.
+type GoReqResFileData struct {
+	RequestData
+	PackageName string
+}
+
+type GoSdkClientFileData struct {
+	PackageName   string
+	ClientName    string
 	ClientVersion string
-
-	Endpoints []GoSdkEndpointDef
+	Endpoints     []EndpointData
 }
 
-type GoSdkEndpointDef struct {
-	// Name of the Endpoint
-	Name string
-
-	Request GoRequestStructDef
-
-	Responses map[int]GoResponseStructDef
+type EndpointData struct {
+	Name    string
+	Request RequestData
 }
 
-// SERVER FILE DEFINITIONS
-
-type GoServerFileTemplateData struct {
-	PackageName string
-
-	Request GoRequestStructDef
-
-	// Response definitions
-	//
-	// These structs do NOT need a New() function to be created, but
-	// require a WriteResponse function to be created.
-	//
-	// Only populated if ContentType is application/json.
-	// Responses, and therefor WriteResponse functions will exist even if no headers, or body is defined.
-	Responses []GoResponseStructDef
-}
-
-type GoRequestStructDef struct {
-	// Name of the request
+type RequestData struct {
 	Name        string
 	Description *string
-	ContentType string
-	Method      string
-	Path        string
 
-	// Maximum allowed request body size in bytes, if any
-	//
-	// Nil, a default limit will be applied (256 KB).
+	// Indicates whether the request body should be ignored by the generated code
+	// and only focus on other aspects of the request, such as headers, query parameters, path parameters, etc.
+	RawBody bool
+
+	Method string
+
+	// URL path of the request, e.g. "/users/{userId}"
+	Path string
+
 	MaxBodyBytes *int64
+	ContentType  string
 
-	HeaderParams []GoParamDef
-	QueryParams  []GoParamDef
-	PathParams   []GoParamDef
+	HeaderParams []ParamData
+	QueryParams  []ParamData
+	PathParams   []ParamData
 
-	// Supporting structs that need a New() function to be created
-	//
-	// Example: RequestBody, if any, will be here, and any other structs
-	// that are defined in the spec as a result of being the children of RequestBody.
-	SupportingStructs []GoStructDef
-
-	// Name of the request body struct, if any
-	//
-	// The definition is in SupportingStructs.
-	//
-	// Nil if there is no request body.
 	RequestBodyName *string
 
-	// Authentication methods which are ALL required for this request
-	AuthAll []GoAuthMethod
+	AuthAll []AuthMethodData
+	AuthAny []AuthMethodData
 
-	// Authentication methods of which ANY one is required for this request
-	AuthAny []GoAuthMethod
+	// Responses
+	Responses []ResponseData
 }
 
-type GoResponseStructDef struct {
-	// HTTP status code of the response
-	StatusCode int
-
-	// Name of the response struct
-	//
-	// The definition is in SupportingStructs.
-	Name string
-
+type ResponseData struct {
+	StatusCode  int
+	Name        string
 	Description *string
 
-	// content type of the response
-	ContentType string
-
-	Headers []GoParamDef
-
-	// Other supporting structs needed for this response
+	// Indicates whether the response body should be ignored by the generated code
 	//
-	// Example: If the response body has nested objects, those structs will be here.
-	SupportingStructs []GoStructDef
-
-	// Name of the response body struct, if any
-	//
-	// The definition is in SupportingStructs.
-	//
-	// Nil if there is no response body.
+	// This makes the generated code only set the status code and headers, without trying to include the response body.
+	RawBody          bool
+	ContentType      string
+	Headers          []ParamData
 	ResponseBodyName *string
 }
 
-// Definition of a Go struct
-type GoStructDef struct {
-	Name   string
-	Fields []GoFieldDef
-}
-
-// Definition of a field in a Go struct
-type GoFieldDef struct {
-	// e.g. "User", "Age", "IsActive" etc.
-	Name string
-
-	// Field description from the spec
-	Description *string
-
-	// Go type (e.g. "string", "float64", "boolean" etc.)
-	//
-	// If a type should be pointer, it should NOT have a `*` here, the template will add that based on Required.
-	//
-	// For arrays, this is the array type (e.g. `[]string`, `[]MyStruct` etc.)
-	//
-	// For objects, this is the struct name (e.g. `MyStruct`)
-	GoType string
-
-	// e.g. `json:"fieldName,omitempty"`
-	//
-	// fieldName will just be Name as is, pascal case.
-	Tag string
-
-	// Whether the type has a Validate() method defined on it or on the element type (for arrays)
-	RecurseValidate bool
-
-	// Whether the field is an array
-	IsArray bool
-
-	// Element type if the field is an array
-	ElemGoType string
-
-	// Whether the field is required, detects presence, not emptiness
-	Required bool
-
-	// Only considered for strings and arrays
-	//
-	// The template assumes this is only true for strings and arrays.
-	//
-	// If it is a []string, i.e an array of strings, this means the array elements must be non-empty strings.
-	NonEmpty bool
-
-	// For object type, whether the object is free-form, i.e., it can have any properties with any types. If this is true, the template will treat this as map[string]any in Go.
-	//
-	// This will make the template NOT generate a struct or a validation function for this field.
-	//
-	// Only applicable for object types. The template assumes this is only true for object types.
-	FreeForm bool
-}
-
-// Definition of a parameter (header, query, path) in Go
-type GoParamDef struct {
-	// Parameter name
-	Name string
-
-	// Parameter name in transport (e.g. header name, query param name, path param name)
-	//
-	// This should be the exact name as it appears in the HTTP request.
+type ParamData struct {
+	Name          string
 	TransportName string
-
-	// Parameter type
-	//
-	// This should not have a `*` even if the parameter is optional, the template will add that based on Required.
-	GoType string
-
-	// Whether the parameter is required, for strings means non-empty
-	Required bool
-
-	// Parameter description
-	Description *string
+	Type          string
+	Required      bool
+	Description   *string
 }
 
-type GoAuthMethodType string
+type TypeData struct {
+	Name        string
+	Description *string
 
+	Fields []TypeFieldData
+}
+
+// TypeStr is a string representation of a Go type, used for code generation purposes.
+//
+// It is not a full representation of all possible types, since the ones in the enum are
+// primitive-ish types, while more complex types (e.g. structs) are represented by their name as a string, and the actual struct definition is in TypeData.
 const (
-	GoAuthMethodTypeHeader GoAuthMethodType = "header"
+	TypeStrString         = "string"
+	TypeStrInteger        = "int64"
+	TypeStrDouble         = "float64"
+	TypeStrBoolean        = "bool"
+	TypeStrFreeFormObject = "map[string]any"
 )
 
-// Definition of an authentication method in Go
-type GoAuthMethod struct {
-	// ID of the authentication method.
-	//
-	// This ID is referenced by endpoints to specify which authentication methods to use.
-	//
-	// Note: This must be unique across all authentication methods in the API spec.
+type TypeFieldData struct {
+	Name        string
+	Description *string
+
+	// Type is either a primitive type (TypeStr) or the name of a struct defined in Types.
+	Type string
+
+	// Whether the type is a pointer type. Cases:
+	// True if the field is optional.
+	// True if the field is a non-primitive type (e.g. struct), since we want to use pointer types for structs to allow for nil values and to avoid copying large structs.
+	// False if IsArray is true.
+	// False if the field is required and a primitive type, since we want to use value types for required primitive fields for better ergonomics.
+	PtrType bool
+
+	// Whether the type is a non-primitive type (e.g. struct).
+	IsNonPrimitiveType bool
+
+	// Tag is the struct field tag, used for JSON serialization, validation, etc.
+	Tag string
+
+	// Used to put the [] in the right place for array types. If true, the generated code will use []Type for this type.
+	IsArray bool
+
+	Required bool
+
+	NonEmpty bool
+}
+
+type AuthMethodType string
+
+const (
+	AuthMethodTypeHeader AuthMethodType = "header"
+)
+
+type AuthMethodData struct {
 	ID string
 
-	// Name of the header to be used for authentication.
-	//
-	// This name is referenced by endpoints to specify which authentication methods to use.
-	//
-	// Note: This must be the name you want to use for the header in the actual HTTP request.
 	Name string
 
-	// Name of the transport (e.g. header name)
-	//
-	// This must be the name you want to use for the header in the actual HTTP request.
 	TransportName string
 
-	// Type of the auth method
-	Type GoAuthMethodType
+	Type AuthMethodType
 
-	// Description of the auth method
-	//
-	// Freeform text describing the auth method.
 	Description *string
 
 	// Optional format of the auth method
 	//
-	// Freeform text, e.g. "Bearer {token}", "jwt", etc.
+	// For example
 	Format *string
 }

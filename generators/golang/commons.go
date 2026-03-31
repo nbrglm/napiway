@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -12,276 +13,287 @@ import (
 	"golang.org/x/tools/imports"
 )
 
-func generateGoHelperFuncsFile(packageName, clientName, version string) ([]byte, error) {
-	var buf bytes.Buffer
-	tmpl, err := template.ParseFS(goTemplates, "templates/helperFuncsFile.tmpl")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse helper funcs template: %w", err)
-	}
-
-	err = tmpl.ExecuteTemplate(&buf, "goHelperFuncsFile", map[string]string{
-		"PackageName": packageName,
-		"ClientName":  clientName,
-		"Version":     version,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute helper funcs template: %w", err)
-	}
-	return buf.Bytes(), nil
-}
-
-func collectAnyAndAllAuthMethods(endpoint *spec.Endpoint, api *spec.Specification) (reqAuthMethodsAll, reqAuthMethodsAny []GoAuthMethod) {
-	if endpoint.Auth != nil {
-		for _, auth := range api.Auth {
-			if slices.Contains(endpoint.Auth.All, auth.ID) {
-				reqAuthMethodsAll = append(reqAuthMethodsAll, GoAuthMethod{
-					ID:            auth.ID,
-					Name:          auth.Name,
-					Type:          getGoAuthMethodType(auth.Type),
-					TransportName: auth.TransportName,
-					Description:   auth.Description,
-					Format:        auth.Format,
-				})
-				continue
-			}
-
-			if slices.Contains(endpoint.Auth.Any, auth.ID) {
-				reqAuthMethodsAny = append(reqAuthMethodsAny, GoAuthMethod{
-					ID:            auth.ID,
-					Name:          auth.Name,
-					Type:          getGoAuthMethodType(auth.Type),
-					TransportName: auth.TransportName,
-					Description:   auth.Description,
-					Format:        auth.Format,
-				})
-			}
-		}
-	}
-	return
-}
-
-func collectRequest(endpoint *spec.Endpoint, endpointName string, reqAuthMethodsAll, reqAuthMethodsAny []GoAuthMethod) GoRequestStructDef {
-	headers, query, path := []GoParamDef{}, []GoParamDef{}, []GoParamDef{}
-
-	for _, header := range endpoint.Headers {
-		headers = append(headers, getGoParamDef(header))
-	}
-	for _, queryParam := range endpoint.QueryParams {
-		query = append(query, getGoParamDef(queryParam))
-	}
-	for _, pathParam := range endpoint.PathParams {
-		path = append(path, getGoParamDef(pathParam))
-	}
-
-	requestStructs := []GoStructDef{}
-	var reqBodyName *string
-	// Collect structs from RequestBody
-	if endpoint.RequestBody != nil && endpoint.ContentType != nil && *endpoint.ContentType == "application/json" {
-		name := fmt.Sprintf("%sRequestBody", exportedName(endpointName))
-		reqBodyName = &name
-		requestStructs = append(requestStructs, collectStructsFromRequestBody(exportedName(endpointName), endpoint.RequestBody)...)
-	}
-
-	slices.SortFunc(requestStructs, func(a, b GoStructDef) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-
-	return GoRequestStructDef{
-		Name:              exportedName(endpointName) + "Request",
-		Description:       endpoint.Description,
-		ContentType:       *endpoint.ContentType,
-		Method:            string(endpoint.Method),
-		Path:              endpoint.Path,
-		MaxBodyBytes:      endpoint.MaxBodyBytes,
-		HeaderParams:      headers,
-		QueryParams:       query,
-		PathParams:        path,
-		SupportingStructs: requestStructs,
-		RequestBodyName:   reqBodyName,
-		AuthAll:           reqAuthMethodsAll,
-		AuthAny:           reqAuthMethodsAny,
-	}
-}
-
-func collectResponses(endpoint *spec.Endpoint, endpointName string) []GoResponseStructDef {
-	responseStructs := []GoResponseStructDef{}
-	for _, status := range utils.SortedMapKeys(endpoint.Responses) {
-		response := endpoint.Responses[status]
-		respName := fmt.Sprintf("%s%dResponse", exportedName(endpointName), status)
-		structs := []GoStructDef{}
-		var respBodyName *string
-		if response.Body != nil && response.ContentType != nil && *response.ContentType == "application/json" {
-			name := respName + "Body"
-			respBodyName = &name
-			structs = append(structs, collectStructsFromResponseBody(respName, response.Body)...)
-		}
-		headers := []GoParamDef{}
-		for _, header := range response.Headers {
-			headers = append(headers, getGoParamDef(header))
-		}
-		responseStructs = append(responseStructs, GoResponseStructDef{
-			StatusCode:        status,
-			Name:              respName,
-			Description:       response.Description,
-			ContentType:       *response.ContentType,
-			Headers:           headers,
-			SupportingStructs: structs,
-			ResponseBodyName:  respBodyName,
+func TypesDataFromSpec(specification *spec.Config) []TypeData {
+	var types []TypeData
+	for _, t := range specification.Schemas {
+		types = append(types, TypeData{
+			Name:        exportedName(t.Name),
+			Description: t.Description,
+			Fields:      getFieldsDataFromSpecFields(t.Properties),
 		})
 	}
-	slices.SortFunc(responseStructs, func(a, b GoResponseStructDef) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-	return responseStructs
+	sortTypesByName(&types)
+	return types
 }
 
-func collectStructsFromResponseBody(parentName string, body *spec.HTTPBody) []GoStructDef {
-	structs := []GoStructDef{}
+func RequestResponsesDataFromEndpointDef(endpointIdx int, specification *spec.Specification) (RequestData, error) {
+	endpoint := specification.Endpoints[endpointIdx]
 
-	field := spec.Field{
-		Type:        spec.FieldTypeObject,
-		Description: body.Description,
-		Properties:  body.Properties,
-		Required:    true,
+	var authMethodAll, authMethodAny []AuthMethodData
+
+	if endpoint.Auth != nil {
+		var err error
+		authMethodAll, err = getAuthMethods(specification, endpoint.Auth.All)
+		if err != nil {
+			return RequestData{}, err
+		}
+		authMethodAny, err = getAuthMethods(specification, endpoint.Auth.Any)
+		if err != nil {
+			return RequestData{}, err
+		}
 	}
 
-	collectStructs(parentName, "Body", &field, &structs)
-	return structs
+	var requestBodyName *string
+	if endpoint.BodyName != nil {
+		requestBodyName = new(string)
+		*requestBodyName = exportedName(*endpoint.BodyName)
+	}
+
+	responses := make([]ResponseData, len(endpoint.Responses))
+	has413 := false
+	for i, resp := range endpoint.Responses {
+		if resp.StatusCode == 413 {
+			has413 = true
+		}
+		var responseBodyName *string
+		if resp.BodyName != nil {
+			responseBodyName = new(string)
+			*responseBodyName = exportedName(*resp.BodyName)
+		}
+		responses[i] = ResponseData{
+			StatusCode:       resp.StatusCode,
+			Name:             exportedName(endpoint.Name + strconv.Itoa(resp.StatusCode)),
+			Description:      resp.Description,
+			RawBody:          resp.RawBody,
+			ContentType:      *resp.ContentType,
+			Headers:          mapSpecParamToParamData(resp.Headers),
+			ResponseBodyName: responseBodyName,
+		}
+	}
+
+	// If the responses don't include a 413 (Payload Too Large), add a default one for the case when the request body exceeds MaxBodyBytes
+	if !has413 && !endpoint.RawBody && requestBodyName != nil {
+		// If RawBody is true, it means the generated code will not be reading/unmarshalling the request body, so we don't need to worry about adding a 413 response.
+		// If requestBodyName is nil, it means there is no request body, so we also don't need to worry about adding a 413 response.
+		desc := "Payload Too Large - the request body exceeds the maximum allowed size"
+		responses = append(responses, ResponseData{
+			StatusCode:       413,
+			Name:             exportedName(endpoint.Name + "413Response"),
+			Description:      &desc,
+			RawBody:          true, // Since the body is too large to be read, we set RawBody to true to indicate that the generated code should not try to read/unmarshal the response body.
+			Headers:          []ParamData{},
+			ResponseBodyName: nil,
+		})
+	}
+
+	sortResponsesByStatusCode(&responses)
+
+	return RequestData{
+		Name:            exportedName(endpoint.Name + "Req"),
+		Description:     endpoint.Description,
+		Method:          string(endpoint.Method),
+		Path:            endpoint.Path,
+		MaxBodyBytes:    endpoint.MaxBodyBytes,
+		ContentType:     *endpoint.ContentType,
+		RawBody:         endpoint.RawBody,
+		RequestBodyName: requestBodyName,
+		PathParams:      mapSpecParamToParamData(endpoint.PathParams),
+		QueryParams:     mapSpecParamToParamData(endpoint.QueryParams),
+		HeaderParams:    mapSpecParamToParamData(endpoint.Headers),
+		AuthAll:         authMethodAll,
+		AuthAny:         authMethodAny,
+		Responses:       responses,
+	}, nil
 }
 
-func collectStructsFromRequestBody(parentName string, body *spec.HTTPBody) []GoStructDef {
-	structs := []GoStructDef{}
-
-	field := spec.Field{
-		Type:        spec.FieldTypeObject,
-		Description: body.Description,
-		Properties:  body.Properties,
-		Required:    true,
+func mapSpecParamToParamData(params []spec.Param) []ParamData {
+	resParams := make([]ParamData, len(params))
+	for i, pathParam := range params {
+		resParams[i] = ParamData{
+			Name:          exportedName(pathParam.Name),
+			TransportName: pathParam.TransportName,
+			Type:          getPathParamTypeFromSpecPathParamType(pathParam.Type),
+			Required:      pathParam.Required,
+			Description:   pathParam.Description,
+		}
 	}
-
-	collectStructs(parentName, "RequestBody", &field, &structs)
-	return structs
+	sortParamsByName(&resParams)
+	return resParams
 }
 
-func collectStructs(parentName string, fieldName string, field *spec.Field, out *[]GoStructDef) {
-	if field.Type != spec.FieldTypeObject {
-		return
+func getPathParamTypeFromSpecPathParamType(paramType spec.ParamType) string {
+	switch paramType {
+	case spec.ParamTypeString:
+		return TypeStrString
+	case spec.ParamTypeInteger:
+		return TypeStrInteger
+	case spec.ParamTypeDouble:
+		return TypeStrDouble
+	case spec.ParamTypeBoolean:
+		return TypeStrBoolean
+	default:
+		return string(paramType)
 	}
+}
 
-	structName := parentName + exportedName(fieldName)
+func getAuthMethods(specification *spec.Specification, ids []string) ([]AuthMethodData, error) {
+	ams := make([]AuthMethodData, 0, len(ids))
+	missingAuths := []string{}
 
-	structDef := GoStructDef{
-		Name:   structName,
-		Fields: []GoFieldDef{},
-	}
-
-	for _, propName := range utils.SortedMapKeys(field.Properties) {
-		prop := field.Properties[propName]
-		goFieldType, shouldRecurseValidate := goTypeFromSpecField(prop, structName+exportedName(propName))
-
-		goTypeElem := ""
-		if prop.Type == spec.FieldTypeArray {
-			goTypeElem = goFieldType[2:] // trim the "[]"
-		}
-
-		fieldDef := GoFieldDef{
-			Name:            exportedName(propName),
-			Description:     prop.Description,
-			GoType:          goFieldType,
-			Tag:             `json:"` + exportedName(propName) + omitEmptyTag(prop.Required) + `"`,
-			RecurseValidate: shouldRecurseValidate,
-			IsArray:         prop.Type == spec.FieldTypeArray,
-			ElemGoType:      goTypeElem,
-			Required:        prop.Required,
-			NonEmpty:        prop.NonEmpty,
-			FreeForm:        prop.FreeForm,
-		}
-
-		structDef.Fields = append(structDef.Fields, fieldDef)
-
-		// Recursively collect nested structs
-		switch prop.Type {
-		case spec.FieldTypeObject:
-			if !prop.FreeForm {
-				collectStructs(structName, propName, &prop, out)
-			}
-		case spec.FieldTypeArray:
-			// If the property is an array, check if the items are objects
-			if prop.Items != nil && prop.Items.Type == spec.FieldTypeObject && !prop.Items.FreeForm {
-				collectStructs(structName, propName+"Item", prop.Items, out)
-			}
+	for _, id := range ids {
+		idx := slices.IndexFunc(specification.Auth, func(auth spec.AuthMethod) bool {
+			return auth.ID == id
+		})
+		if idx == -1 {
+			missingAuths = append(missingAuths, id)
+		} else {
+			auth := specification.Auth[idx]
+			ams = append(ams, AuthMethodData{
+				ID:            auth.ID,
+				Name:          exportedName(auth.Name),
+				TransportName: auth.TransportName,
+				Type:          AuthMethodType(auth.Type),
+				Description:   auth.Description,
+				Format:        auth.Format,
+			})
 		}
 	}
-	*out = append(*out, structDef)
+	if len(missingAuths) > 0 {
+		return nil, fmt.Errorf("auth methods with ids %v not found in specification", missingAuths)
+	}
+
+	sortAuthMethodsByID(&ams)
+	return ams, nil
+}
+
+func getFieldsDataFromSpecFields(fields []*spec.SchemaField) []TypeFieldData {
+	res := make([]TypeFieldData, len(fields))
+	for i, field := range fields {
+		typ, isPrimitive := getTypeDataFieldTypeFromSpecFieldType(field.Type)
+		ptrType := false
+		if field.IsArray {
+			ptrType = false
+		} else if !field.Required {
+			ptrType = true
+		} else if !isPrimitive {
+			ptrType = true
+		}
+		var tagBuilder strings.Builder
+		tagBuilder.WriteString("json:")
+		tagBuilder.WriteRune('"')
+		tagBuilder.WriteString(exportedName(field.Name))
+		tagBuilder.WriteString(getOmitEmpty(field.Required))
+		tagBuilder.WriteRune('"')
+		res[i] = TypeFieldData{
+			Name:               exportedName(field.Name),
+			Description:        field.Description,
+			Type:               typ,
+			PtrType:            ptrType,
+			IsNonPrimitiveType: !isPrimitive,
+			Tag:                tagBuilder.String(),
+			IsArray:            field.IsArray,
+			Required:           field.Required,
+			NonEmpty:           field.NonEmpty,
+		}
+	}
+	sortTypeFieldsByName(&res)
+	return res
+}
+
+// Returns the Go type string for a given SchemaFieldType, and a boolean indicating whether the type is a primitive type (i.e. one of the types in TypeStr) or not. If the type is not a primitive type, the returned string is just the exported name of the SchemaFieldType, and it is assumed that there will be a struct generated for this type in Types.
+func getTypeDataFieldTypeFromSpecFieldType(fieldType spec.SchemaFieldType) (string, bool) {
+	switch fieldType {
+	case spec.SchemaFieldTypeString:
+		return TypeStrString, true
+	case spec.SchemaFieldTypeInteger:
+		return TypeStrInteger, true
+	case spec.SchemaFieldTypeDouble:
+		return TypeStrDouble, true
+	case spec.SchemaFieldTypeBoolean:
+		return TypeStrBoolean, true
+	case spec.SchemaFieldTypeFreeFormObject:
+		return TypeStrFreeFormObject, true
+	default:
+		return exportedName(string(fieldType)), false
+	}
 }
 
 func exportedName(name string) string {
-	// return cases.Title(language.English).String(name)
-	return strings.ToUpper(name[:1]) + name[1:]
-}
-
-func goTypeFromSpecField(field spec.Field, parentName string) (typ string, shouldRecurseValidate bool) {
-	switch field.Type {
-	case spec.FieldTypeString:
-		return "string", false
-	case spec.FieldTypeNumber:
-		return "float64", false
-	case spec.FieldTypeBoolean:
-		return "bool", false
-	case spec.FieldTypeObject:
-		if field.FreeForm {
-			// If properties is nil, treat it as an unknown payload (map[string]any in Go).
-			return "map[string]any", false
-		}
-		return exportedName(parentName), true
-	case spec.FieldTypeArray:
-		elemType, elemRecurse := goTypeFromSpecField(*field.Items, parentName+"Item")
-		return "[]" + elemType, elemRecurse
-	default:
-		panic("unsupported field type " + field.Type)
+	if len(name) == 0 {
+		return name
 	}
+	return strings.ToUpper(string(name[0])) + name[1:]
 }
 
-func goTypeFromParam(param spec.Param) string {
-	switch param.Type {
-	case spec.ParamTypeString:
-		return "string"
-	case spec.ParamTypeNumber:
-		return "float64"
-	case spec.ParamTypeBoolean:
-		return "bool"
-	default:
-		panic("unsupported param type " + param.Type)
-	}
-}
-
-func omitEmptyTag(required bool) string {
+func getOmitEmpty(required bool) string {
 	if required {
 		return ""
 	}
 	return ",omitempty"
 }
 
-func getGoAuthMethodType(authType spec.AuthMethodType) GoAuthMethodType {
-	switch authType {
-	case spec.AuthMethodHeader:
-		return GoAuthMethodTypeHeader
-	default:
-		panic("unsupported auth method type " + string(authType))
-	}
+func sortAuthMethodsByID(authMethods *[]AuthMethodData) {
+	slices.SortFunc(*authMethods, func(a, b AuthMethodData) int {
+		return strings.Compare(a.ID, b.ID)
+	})
 }
 
-func getGoParamDef(param spec.Param) GoParamDef {
-	return GoParamDef{
-		Name:          exportedName(param.Name),
-		TransportName: param.TransportName,
-		GoType:        goTypeFromParam(param),
-		Description:   param.Description,
-		Required:      param.Required,
-	}
+func sortTypeFieldsByName(fields *[]TypeFieldData) {
+	slices.SortFunc(*fields, func(a, b TypeFieldData) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 }
 
-// utils
+func sortResponsesByStatusCode(responses *[]ResponseData) {
+	slices.SortFunc(*responses, func(a, b ResponseData) int {
+		return a.StatusCode - b.StatusCode
+	})
+}
+
+func sortTypesByName(types *[]TypeData) {
+	slices.SortFunc(*types, func(a, b TypeData) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+}
+
+func sortParamsByName(params *[]ParamData) {
+	slices.SortFunc(*params, func(a, b ParamData) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+}
+
+func ExecuteTemplate(name string, tmplData any) ([]byte, error) {
+	tmpl, err := template.ParseFS(goTemplates, "templates/*.tmpl", "templates/**/*.tmpl")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse templates: %w", err)
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.ExecuteTemplate(&buf, name, tmplData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute template: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+func formatAndWriteFile(filePath string, content []byte) error {
+	formattedContent, fmtErr := formatWithImports(content)
+	if fmtErr == nil {
+		content = formattedContent
+	}
+	err := utils.WriteFile(filePath, content)
+	if err != nil {
+		return fmt.Errorf("failed to write file %s: %w", filePath, err)
+	}
+
+	// handle formatting error after writing the file to ensure the file is created even if formatting fails
+	// Helps in debugging issues without losing the generated code
+	if fmtErr != nil {
+		return fmt.Errorf("failed to format code (%s) with imports: %w", filePath, fmtErr)
+	}
+	return nil
+}
+
 // run go mod tidy
 func runGoModTidy(dir string) error {
 	cmdGoModTidy := "go mod tidy"
@@ -308,4 +320,23 @@ func formatWithImports(src []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to format code with goimports: %w", err)
 	}
 	return formattedSrc, nil
+}
+
+// generateAndWriteHelperFuncsFile generates the content of the helperFuncs.go file, which contains helper functions that are used across multiple generated files.
+func generateAndWriteHelperFuncsFile(packageName, clientName, version, filePath string) error {
+	var buf bytes.Buffer
+	tmpl, err := template.ParseFS(goTemplates, "templates/helperFuncsFile.tmpl")
+	if err != nil {
+		return fmt.Errorf("failed to parse helper funcs template: %w", err)
+	}
+
+	err = tmpl.ExecuteTemplate(&buf, "goHelperFuncsFile", map[string]string{
+		"PackageName": packageName,
+		"ClientName":  clientName,
+		"Version":     version,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to execute helper funcs template: %w", err)
+	}
+	return formatAndWriteFile(filePath, buf.Bytes())
 }

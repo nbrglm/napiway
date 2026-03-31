@@ -1,0 +1,16 @@
+{{define "serverTypesFile"}}
+
+package {{.PackageName}}
+
+import (
+  "encoding/json"
+	"fmt"
+  "net/http"
+  "strconv"
+  "strings"
+)
+
+{{if .Types}}
+{{template "typeGenerator" .}}
+{{end}}
+{{end}}

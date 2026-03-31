@@ -1,17 +1,14 @@
 package golang
 
 import (
-	"bytes"
 	"fmt"
-	"path"
 	"path/filepath"
-	"text/template"
 
 	"github.com/nbrglm/napiway/spec"
 	"github.com/nbrglm/napiway/utils"
 )
 
-func GenerateServerHelpers(cfg spec.GoServerGeneration, api spec.Specification) error {
+func GenerateServerHelpers(cfg *spec.GoServerGeneration, api *spec.Config) error {
 	if absOutputDir, err := filepath.Abs(cfg.OutputDir); err != nil {
 		return fmt.Errorf("failed to get absolute path of output directory: %w", err)
 	} else {
@@ -23,77 +20,61 @@ func GenerateServerHelpers(cfg spec.GoServerGeneration, api spec.Specification) 
 		return fmt.Errorf("failed to clear output directory: %w", err)
 	}
 
-	// generate a file for each endpoint
-	for _, endpointName := range utils.SortedMapKeys(api.Endpoints) {
-		filePath := path.Join(cfg.OutputDir, exportedName(endpointName)+"Handler.go")
-		content, err := GenerateGoServerHandlerFile(cfg, &api, endpointName)
-		if err != nil {
-			// handle error
-			return fmt.Errorf("failed to generate handler for %s: %w", endpointName, err)
-		}
-
-		// Store the formatting error but write the file regardless.
-		formattedContent, formatErr := formatWithImports(content)
-		if formatErr == nil {
-			content = formattedContent
-		}
-		// fail back to unformatted content if formatting fails, but still write the file to ensure the generated code is not lost
-		err = utils.WriteFile(filePath, content)
-		if err != nil {
-			// handle error
-			return fmt.Errorf("failed to write file %s: %w", filePath, err)
-		}
-		// handle formatting error after writing the file to ensure the file is created even if formatting fails
-		// Helps in debugging issues without losing the generated code
-		if formatErr != nil {
-			return fmt.Errorf("failed to format handler file %s: %w", filePath, formatErr)
-		}
+	if err := generateAndWriteServerTypesFile(cfg, api); err != nil {
+		return fmt.Errorf("failed to generate and write server types file: %w", err)
 	}
 
-	helpersFileContent, err := generateGoHelperFuncsFile(cfg.PackageName, api.ApiName, api.Version)
-	if err != nil {
-		return fmt.Errorf("failed to generate helper funcs file: %w", err)
+	if err := generateAndWriteServerReqResFiles(cfg, api); err != nil {
+		return fmt.Errorf("failed to generate and write server request and response files: %w", err)
 	}
-	helpersFilePath := path.Join(cfg.OutputDir, "helperFuncs.go")
-	helpersFileContent, err = formatWithImports(helpersFileContent)
-	if err != nil {
-		return fmt.Errorf("failed to format helper funcs file: %w", err)
+
+	helpersFilePath := filepath.Join(cfg.OutputDir, "helperFuncs.go")
+	if err := generateAndWriteHelperFuncsFile(cfg.PackageName, api.Spec.ApiName, api.Spec.Version, helpersFilePath); err != nil {
+		return fmt.Errorf("failed to generate and write helper functions file: %w", err)
 	}
-	err = utils.WriteFile(helpersFilePath, helpersFileContent)
+
+	return nil
+}
+
+func generateAndWriteServerTypesFile(cfg *spec.GoServerGeneration, api *spec.Config) error {
+	types := TypesDataFromSpec(api)
+	fileData := GoTypesFileData{
+		PackageName: cfg.PackageName,
+		Types:       types,
+	}
+	filePath := filepath.Join(cfg.OutputDir, "types.go")
+	content, err := ExecuteTemplate("serverTypesFile", fileData)
 	if err != nil {
-		return fmt.Errorf("failed to write helper funcs file: %w", err)
+		return fmt.Errorf("failed to execute template: %w", err)
+	}
+	err = formatAndWriteFile(filePath, content)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func GenerateGoServerHandlerFile(cfg spec.GoServerGeneration, api *spec.Specification, endpointName string) ([]byte, error) {
-	endpoint, exists := api.Endpoints[endpointName]
-	if !exists {
-		return nil, fmt.Errorf("endpoint %s not found in specification", endpointName)
+func generateAndWriteServerReqResFiles(cfg *spec.GoServerGeneration, api *spec.Config) error {
+	for idx := range api.Spec.Endpoints {
+		filePath := filepath.Join(cfg.OutputDir, fmt.Sprintf("%s.go", exportedName(api.Spec.Endpoints[idx].Name)))
+
+		reqData, err := RequestResponsesDataFromEndpointDef(idx, &api.Spec)
+		if err != nil {
+			return fmt.Errorf("failed to get request and response data from endpoint (%s) definition: %w", api.Spec.Endpoints[idx].Name, err)
+		}
+
+		fileData := GoReqResFileData{
+			PackageName: cfg.PackageName,
+			RequestData: reqData,
+		}
+		content, err := ExecuteTemplate("serverReqResFile", fileData)
+		if err != nil {
+			return fmt.Errorf("failed to execute template for endpoint (%s): %w", api.Spec.Endpoints[idx].Name, err)
+		}
+		err = formatAndWriteFile(filePath, content)
+		if err != nil {
+			return err
+		}
 	}
-
-	// Collect required auth methods for the endpoint
-	reqAuthMethodsAll, reqAuthMethodsAny := collectAnyAndAllAuthMethods(endpoint, api)
-
-	request := collectRequest(endpoint, endpointName, reqAuthMethodsAll, reqAuthMethodsAny)
-	responses := collectResponses(endpoint, endpointName)
-
-	tmplData := GoServerFileTemplateData{
-		PackageName: cfg.PackageName,
-		Request:     request,
-		Responses:   responses,
-	}
-
-	tmpl, err := template.ParseFS(goTemplates, "templates/*.tmpl", "templates/**/*.tmpl")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse templates: %w", err)
-	}
-
-	var buf bytes.Buffer
-	err = tmpl.ExecuteTemplate(&buf, "goServerHandlerFile", tmplData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute template: %w", err)
-	}
-	// return the generated content
-	return buf.Bytes(), nil
+	return nil
 }

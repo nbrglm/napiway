@@ -2,5 +2,5 @@
   {{if .Description}}// {{.Description}}
   //{{end}}
   // {{if .Required}}Required{{else}}Optional{{end}}
-  {{.Name}} {{if not .Required}}*{{end}}{{.GoType}}
+  {{.Name}} {{if not .Required}}*{{end}}{{.Type}}
 {{end}}

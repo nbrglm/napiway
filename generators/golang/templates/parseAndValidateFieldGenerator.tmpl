@@ -1,0 +1,110 @@
+{{define "parseAndValidateFieldGenerator"}}
+  {{if eq .Type "map[string]any"}}
+  {{/** Free Form Object */}}
+  val{{.Name}}, ok := data["{{.Name}}"]
+  if !ok {
+    {{if or .Required .NonEmpty}}
+    return body, fmt.Errorf("missing required field '{{.Name}}'")
+    {{else}}
+    // skip, leave as zero value
+    {{end}}
+  } else {
+    val{{.Name}}Typed, ok := val{{.Name}}.(map[string]any)
+    if !ok {
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    {{if or .NonEmpty .Required}}
+    // if it's a freeform object, we consider it passed if it has at least one key
+    if len(val{{.Name}}Typed) == 0 {
+      return body, fmt.Errorf("field '{{.Name}}' must be non-empty")
+    }
+    {{end}}
+    body.{{.Name}} = {{if .PtrType}}&{{end}}val{{.Name}}Typed
+  }
+  {{else}}
+  {{/** Normal Field */}}
+  val{{.Name}}, ok := data["{{.Name}}"]
+  if !ok {
+    {{if or .Required .NonEmpty}}
+    return body, fmt.Errorf("missing required field '{{.Name}}'")
+    {{else}}
+    // skip, leave as zero value
+    {{end}}
+  } else {
+    {{if .IsArray}}
+    val{{.Name}}Slice, ok := val{{.Name}}.([]any)
+    if !ok {
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    {{if or .NonEmpty .Required}}
+    if len(val{{.Name}}Slice) == 0 {
+      return body, fmt.Errorf("field '{{.Name}}' must be non-empty")
+    }
+    {{end}}
+    val{{.Name}}Typed := make([]{{.Type}}, 0, len(val{{.Name}}Slice))
+    {{if .IsNonPrimitiveType}}
+    for idx, item := range val{{.Name}}Slice {
+      itemMap, ok := item.(map[string]any)
+      if !ok {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' has incorrect type", idx)
+      }
+      validatedItem, err := Parse{{.Type}}(itemMap)
+      if err != nil {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' is invalid: %w", idx, err)
+      }
+      val{{.Name}}Typed = append(val{{.Name}}Typed, *validatedItem)
+    }
+    {{else}}
+    {{end}}
+    {{else if .IsNonPrimitiveType}}
+    val{{.Name}}Map, ok := val{{.Name}}.(map[string]any)
+    if !ok {
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    val{{.Name}}Typed, err := Parse{{.Type}}(val{{.Name}}Map)
+    if err != nil {
+      return body, fmt.Errorf("field '{{.Name}}' is invalid: %w", err)
+    }
+    {{else}}
+    {{if eq .Type "int64"}}
+    var val{{.Name}}Typed int64
+    // JSON numbers are float64 by default, so we need to handle that case
+    switch v := val{{.Name}}.(type) {
+    case float64:
+      val{{.Name}}Typed = int64(v)
+    case int64:
+      val{{.Name}}Typed = v
+    default:
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    {{else}}
+    val{{.Name}}Typed, ok := val{{.Name}}.({{.Type}})
+    if !ok {
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    {{end}}
+    {{if and .NonEmpty (eq .Type "string")}}
+    val{{.Name}}Typed = strings.TrimSpace(val{{.Name}}Typed)
+    if len(val{{.Name}}Typed) == 0 {
+      return body, fmt.Errorf("field '{{.Name}}' must be non-empty")
+    }
+    {{end}}
+    {{end}}
+    {{if .IsArray}}
+    body.{{.Name}} = val{{.Name}}Typed
+    {{else if .IsNonPrimitiveType}}
+    {{if .PtrType}}
+    body.{{.Name}} = val{{.Name}}Typed
+    {{else}}
+    body.{{.Name}} = *val{{.Name}}Typed
+    {{end}}
+    {{else}}
+    {{if .PtrType}}
+    body.{{.Name}} = &val{{.Name}}Typed
+    {{else}}
+    body.{{.Name}} = val{{.Name}}Typed
+    {{end}}
+    {{end}}
+  }
+  {{end}}
+{{end}}

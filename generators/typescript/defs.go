@@ -1,7 +1,5 @@
 package typescript
 
-// SDK FILES DEFINITIONS
-
 type TsSdkPackageJsonTemplateData struct {
 	PackageName string
 	Version     string
@@ -13,56 +11,58 @@ type TsSdkPackageJsonTemplateData struct {
 	Keywords    []string
 }
 
-type TsSdkApiAndModelsFilesTemplateData struct {
+type TsSdkModelsFileData struct {
+	ClientName string
+	Types      []TypeData
+
+	Requests []RequestData
+}
+
+type TsSdkApiFileData struct {
 	ClientName    string
 	ClientVersion string
-	Endpoints     []TsSdkEndpointDef
+	Endpoints     []EndpointData
 }
 
-type TsSdkEndpointDef struct {
-	Name      string
-	Request   TsRequestDef
-	Responses map[int]TsResponseDef
+type EndpointData struct {
+	Name    string
+	Request RequestData
 }
 
-type TsRequestDef struct {
+type RequestData struct {
 	Name        string
 	Description *string
-	ContentType string
-	Method      string
+
+	RawBody bool
+	Method  string
+
 	Path        string
+	ContentType string
 
-	MaxBodyBytes *int64
-
-	HeaderParams []TsParamDef
-	QueryParams  []TsParamDef
-	PathParams   []TsParamDef
-
-	SupportingTypes []TsTypeDef
+	HeaderParams []ParamData
+	QueryParams  []ParamData
+	PathParams   []ParamData
 
 	RequestBodyName *string
 
-	AuthAll []TsAuthMethodDef
-	AuthAny []TsAuthMethodDef
+	AuthAll []AuthMethodData
+	AuthAny []AuthMethodData
+
+	Responses []ResponseData
 }
 
-type TsResponseDef struct {
-	StatusCode int
-
-	Name string
-
+type ResponseData struct {
+	StatusCode  int
+	Name        string
 	Description *string
 
-	ContentType string
-
-	Headers []TsParamDef
-
-	SupportingTypes []TsTypeDef
-
+	RawBody          bool
+	ContentType      string
+	Headers          []ParamData
 	ResponseBodyName *string
 }
 
-type TsParamDef struct {
+type ParamData struct {
 	Name          string
 	TransportName string
 	Type          string
@@ -70,33 +70,49 @@ type TsParamDef struct {
 	Description   *string
 }
 
-type TsAuthMethodType string
+type TypeData struct {
+	Name        string
+	Description *string
+
+	Fields []TypeFieldData
+}
 
 const (
-	TsAuthMethodTypeHeader TsAuthMethodType = "header"
+	TypeStrString         = "string"
+	TypeStrInteger        = "integer"
+	TypeStrDouble         = "double"
+	TypeStrBoolean        = "boolean"
+	TypeStrFreeFormObject = "Record<string, any>"
 )
 
-type TsAuthMethodDef struct {
-	ID            string
-	Name          string
+type TypeFieldData struct {
+	Name        string
+	Description *string
+	Type        string
+	IsArray     bool
+	Required    bool
+	NonEmpty    bool
+}
+
+type AuthMethodType string
+
+const (
+	AuthMethodTypeHeader AuthMethodType = "header"
+)
+
+type AuthMethodData struct {
+	ID string
+
+	Name string
+
 	TransportName string
-	Type          TsAuthMethodType
-	Description   *string
-	Format        *string
-}
 
-type TsTypeDef struct {
-	Name   string
-	Fields []TsFieldDef
-}
+	Type AuthMethodType
 
-type TsFieldDef struct {
-	Name            string
-	Description     *string
-	Type            string
-	Required        bool
-	RecurseValidate bool
-	IsArray         bool
-	ElemType        string
-	NonEmpty        bool
+	Description *string
+
+	// Optional format of the auth method
+	//
+	// For example
+	Format *string
 }

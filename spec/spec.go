@@ -3,11 +3,14 @@ package spec
 import (
 	"fmt"
 	"slices"
+	"strings"
+	"unicode"
 )
 
 type ServerLanguage string
 
 type Config struct {
+	Schemas  []*Schema           `yaml:"schemas"`
 	GoServer *GoServerGeneration `yaml:"goServer,omitempty"`
 
 	GoSDK *GoSDKGeneration `yaml:"goSdk,omitempty"`
@@ -49,6 +52,117 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid spec: %w", err)
 	}
 
+	return nil
+}
+
+type Schema struct {
+	// Name of the schema, e.g., "User", "Post", etc.
+	Name string `yaml:"name"`
+
+	// Description of the schema
+	Description *string `yaml:"description,omitempty"`
+
+	// The fields of the schema
+	Properties []*SchemaField `yaml:"properties,omitempty"`
+}
+
+func (s *Schema) Validate() error {
+	if s == nil {
+		return fmt.Errorf("schema is nil")
+	}
+	s.Name = strings.TrimSpace(s.Name)
+	if s.Name == "" {
+		return fmt.Errorf("name is required for schema")
+	}
+	if len(s.Properties) == 0 {
+		return fmt.Errorf("at least one property is required for schema %s", s.Name)
+	}
+	for _, prop := range s.Properties {
+		if err := prop.Validate(); err != nil {
+			return fmt.Errorf("property %s: %w", prop.Name, err)
+		}
+	}
+	return nil
+}
+
+type SchemaFieldType string
+
+const (
+	SchemaFieldTypeString         SchemaFieldType = "string"
+	SchemaFieldTypeInteger        SchemaFieldType = "int"
+	SchemaFieldTypeDouble         SchemaFieldType = "double"
+	SchemaFieldTypeBoolean        SchemaFieldType = "boolean"
+	SchemaFieldTypeFreeFormObject SchemaFieldType = "freeFormObject"
+)
+
+func (sft SchemaFieldType) Validate() error {
+	switch sft {
+	case SchemaFieldTypeString, SchemaFieldTypeInteger, SchemaFieldTypeDouble, SchemaFieldTypeBoolean, SchemaFieldTypeFreeFormObject:
+		return nil
+	default:
+		// if the first alphabet is uppercase, it's likely a reference to another schema, which is valid.
+		// if not, it's an invalid schema field type.
+		if string(sft) == "" || !unicode.IsUpper(rune(sft[0])) {
+			return fmt.Errorf("invalid schema field type: %s", sft)
+		}
+		return nil
+	}
+}
+
+type SchemaField struct {
+	// Name of the field, e.g., "Id", "Name", "Email", etc.
+	//
+	// Always PascalCase, as this will be used for code generation.
+	Name string `yaml:"name"`
+
+	// Description of the field
+	Description *string `yaml:"description,omitempty"`
+
+	// Type of the field
+	//
+	// For primitive types, this must be one of "string", "int", "double", "boolean", or "freeFormObject".
+	//
+	// For custom types, this can be the name of another schema defined in the Schemas section.
+	Type SchemaFieldType `yaml:"type"`
+
+	// Indicates whether the field is an array of the specified type
+	IsArray bool `yaml:"isArray,omitempty"`
+
+	// Indicates whether the field is required
+	Required bool `yaml:"required,omitempty"`
+
+	// For string and array types, indicates whether the field must be non-empty
+	//
+	// If it is an array of strings, this means the array elements must be non-empty (i.e. non-empty strings, etc.)
+	NonEmpty bool `yaml:"nonEmpty,omitempty"`
+}
+
+func (sf *SchemaField) Validate() error {
+	if sf == nil {
+		return fmt.Errorf("schema field is nil")
+	}
+	sf.Name = strings.TrimSpace(sf.Name)
+	if sf.Name == "" {
+		return fmt.Errorf("name is required for schema field")
+	}
+
+	if sf.NonEmpty {
+		if !sf.IsArray {
+			switch sf.Type {
+			case SchemaFieldTypeString:
+				break
+			default:
+				return fmt.Errorf("nonEmpty is only applicable for string and array types, not for type %s", sf.Type)
+			}
+		}
+
+		if !sf.Required {
+			return fmt.Errorf("nonEmpty cannot be true if the field is not required")
+		}
+	}
+	if err := sf.Type.Validate(); err != nil {
+		return fmt.Errorf("invalid type for schema field %s: %w", sf.Name, err)
+	}
 	return nil
 }
 
@@ -195,11 +309,10 @@ type Specification struct {
 	// All possible authentication methods for the API.
 	Auth []AuthMethod `yaml:"auth,omitempty"`
 
-	// Map of endpoint names to endpoint definitions.
+	// List of endpoint definitions.
 	//
-	// The key is a unique name for the endpoint, e.g., "GetUser", "CreatePost", etc.
 	// This will be used in code generation and documentation.
-	Endpoints map[string]*Endpoint `yaml:"endpoints"`
+	Endpoints []*Endpoint `yaml:"endpoints"`
 }
 
 func (s *Specification) Validate() error {
@@ -209,9 +322,9 @@ func (s *Specification) Validate() error {
 	if s.Version == "" {
 		return fmt.Errorf("version is required")
 	}
-	for name, endpoint := range s.Endpoints {
+	for _, endpoint := range s.Endpoints {
 		if err := endpoint.Validate(s.Auth); err != nil {
-			return fmt.Errorf("endpoint %s: %w", name, err)
+			return fmt.Errorf("endpoint %s: %w", endpoint.Name, err)
 		}
 	}
 	for i, am := range s.Auth {
@@ -327,6 +440,11 @@ const (
 )
 
 type Endpoint struct {
+	// Name of the endpoint
+	// This is a unique identifier for the endpoint, used in code generation and documentation.
+	// It should be in PascalCase, e.g., "GetUser", "CreatePost", etc.
+	Name string `yaml:"name"`
+
 	// HTTP method for the endpoint, e.g., "GET", "POST", "PUT", "DELETE", etc.
 	Method EndpointMethod `yaml:"method"`
 
@@ -359,16 +477,22 @@ type Endpoint struct {
 	// If omitted, the endpoint does not require authentication.
 	Auth *EndpointAuthentication `yaml:"auth,omitempty"`
 
-	// RequestBody body for the endpoint
-	RequestBody *HTTPBody `yaml:"requestBody,omitempty"`
+	// The body for the endpoint
+	//
+	// Pass the name of the body schema defined in the Schemas section, if any.
+	BodyName *string `yaml:"bodyName,omitempty"`
+
+	// Indicates whether the request body should be ignored by the generated code
+	// and only focus on other aspects of the request, such as headers, query parameters, path parameters, etc.
+	RawBody bool `yaml:"rawBody,omitempty"`
 
 	// Maximum allowed request body size in bytes, if any
 	//
 	// Nil, a default limit will be applied (256 KB).
 	MaxBodyBytes *int64
 
-	// Map of HTTP status codes to responses
-	Responses map[int]*Response `yaml:"responses,omitempty"`
+	// List of responses
+	Responses []*Response `yaml:"responses,omitempty"`
 }
 
 func (e *Endpoint) Validate(authMethods []AuthMethod) error {
@@ -388,12 +512,15 @@ func (e *Endpoint) Validate(authMethods []AuthMethod) error {
 		defaultContentType := "application/json"
 		e.ContentType = &defaultContentType
 	}
-	if e.RequestBody != nil {
-		if err := e.RequestBody.Validate(); err != nil {
-			return fmt.Errorf("request: %w", err)
-		}
-	}
-	for code, resp := range e.Responses {
+	// if e.BodyName != nil {
+	// 	if err := e.BodyName.Validate(); err != nil {
+	// 		return fmt.Errorf("request: %w", err)
+	// 	}
+	// }
+	// no validation here
+	// TODO: check bodyname validation during code generation data gathering step
+	for _, resp := range e.Responses {
+		code := resp.StatusCode
 		if code < 100 || code > 599 {
 			return fmt.Errorf("response %d: invalid HTTP status code", code)
 		}
@@ -423,10 +550,15 @@ func (e *Endpoint) Validate(authMethods []AuthMethod) error {
 			return fmt.Errorf("auth: %w", err)
 		}
 	}
+
+	if e.RawBody && e.BodyName != nil {
+		return fmt.Errorf("rawBody cannot be true if bodyName is specified")
+	}
 	return nil
 }
 
 type Response struct {
+	StatusCode int `yaml:"statusCode"`
 	// Description of the response
 	Description *string `yaml:"description,omitempty"`
 
@@ -435,8 +567,15 @@ type Response struct {
 
 	ContentType *string `yaml:"contentType,omitempty"`
 
-	// Response body
-	Body *HTTPBody `yaml:"body,omitempty"`
+	// Response body Name
+	//
+	// Pass the name of the body schema defined in the Schemas section, if any.
+	BodyName *string `yaml:"bodyName,omitempty"`
+
+	// Indicates whether the response body should be ignored by the generated code
+	//
+	// This makes the generated code only set the status code and headers, without trying to include the response body.
+	RawBody bool `yaml:"rawBody,omitempty"`
 }
 
 func (r *Response) Validate() error {
@@ -447,130 +586,13 @@ func (r *Response) Validate() error {
 		defaultContentType := "application/json"
 		r.ContentType = &defaultContentType
 	}
-	if r.Body != nil {
-		if err := r.Body.Validate(); err != nil {
-			return fmt.Errorf("body: %w", err)
-		}
-	}
 	for i, header := range r.Headers {
 		if err := header.Validate(); err != nil {
 			return fmt.Errorf("header %d: %w", i, err)
 		}
 	}
-	return nil
-}
-
-type FieldType string
-
-const (
-	FieldTypeString  FieldType = "string"
-	FieldTypeNumber  FieldType = "number"
-	FieldTypeBoolean FieldType = "boolean"
-	FieldTypeObject  FieldType = "object"
-	FieldTypeArray   FieldType = "array"
-)
-
-type Field struct {
-	// Type of the field
-	Type FieldType `yaml:"type"`
-
-	// Description of the field
-	Description *string `yaml:"description,omitempty"`
-
-	// For object type, the properties of the object
-	Properties map[string]Field `yaml:"properties,omitempty"`
-
-	// For array type, the items of the array
-	Items *Field `yaml:"items,omitempty"`
-
-	// Whether the field is required to be provided
-	Required bool `yaml:"required,omitempty"`
-
-	// For string and array types, whether the field must be non-empty
-	//
-	// If it is a []string, i.e an array of strings, this means the array elements must be non-empty strings.
-	NonEmpty bool `yaml:"nonEmpty,omitempty"`
-
-	// For object type, whether the object is free-form, i.e., it can have any properties with any types. Mutually exclusive with `properties`.
-	//
-	// If true, the object can have any properties with any types. This will be treated as map[string]any in Go, Record<string, unknown> in TypeScript.
-	FreeForm bool `yaml:"freeForm,omitempty"`
-}
-
-func (f *Field) Validate() error {
-	if f == nil {
-		return fmt.Errorf("field is nil")
-	}
-	if f.NonEmpty {
-		switch f.Type {
-		case FieldTypeString, FieldTypeArray:
-			break
-		default:
-			return fmt.Errorf("nonEmpty is only applicable for string and array types, not for type %s", f.Type)
-		}
-
-		if !f.Required {
-			return fmt.Errorf("nonEmpty requires the field to be required")
-		}
-	}
-
-	if f.FreeForm && f.Type != FieldTypeObject {
-		return fmt.Errorf("freeForm is only applicable for object type, not for type %s", f.Type)
-	}
-
-	if f.FreeForm && f.Properties != nil {
-		return fmt.Errorf("properties cannot be specified when freeForm is true")
-	}
-
-	switch f.Type {
-	case FieldTypeString, FieldTypeNumber, FieldTypeBoolean:
-		if len(f.Properties) != 0 || f.Items != nil {
-			return fmt.Errorf("properties and items are not applicable for type %s", f.Type)
-		}
-	case FieldTypeObject:
-		// If properties is nil, it is still valid as this will be treated as an unknown payload (map[string]any in Go, Record<string, unknown> in TypeScript).
-		if f.Properties == nil && !f.FreeForm {
-			return fmt.Errorf("properties is required for object type unless freeForm is true")
-		}
-		if f.Properties != nil {
-			for name, prop := range f.Properties {
-				if err := prop.Validate(); err != nil {
-					return fmt.Errorf("property %s: %w", name, err)
-				}
-			}
-		}
-	case FieldTypeArray:
-		if f.Items == nil {
-			return fmt.Errorf("items is required for array type")
-		}
-		if err := f.Items.Validate(); err != nil {
-			return fmt.Errorf("items: %w", err)
-		}
-	default:
-		return fmt.Errorf("invalid field type: %s", f.Type)
-	}
-
-	return nil
-}
-
-type HTTPBody struct {
-	Description *string `yaml:"description,omitempty"`
-
-	// The properties of the body object
-	Properties map[string]Field `yaml:"properties,omitempty"`
-}
-
-func (b *HTTPBody) Validate() error {
-	if b == nil {
-		return fmt.Errorf("http body is nil")
-	}
-	if len(b.Properties) == 0 {
-		return fmt.Errorf("properties is required for http body")
-	}
-	for name, prop := range b.Properties {
-		if err := prop.Validate(); err != nil {
-			return fmt.Errorf("property %s: %w", name, err)
-		}
+	if r.RawBody && r.BodyName != nil {
+		return fmt.Errorf("rawBody cannot be true if bodyName is specified")
 	}
 	return nil
 }
@@ -579,7 +601,8 @@ type ParamType string
 
 const (
 	ParamTypeString  ParamType = "string"
-	ParamTypeNumber  ParamType = "number"
+	ParamTypeInteger ParamType = "int"
+	ParamTypeDouble  ParamType = "double"
 	ParamTypeBoolean ParamType = "boolean"
 )
 
@@ -618,7 +641,7 @@ func (p *Param) Validate() error {
 	// - string: must be present and non-empty
 	// - number/boolean: must be present
 	switch p.Type {
-	case ParamTypeString, ParamTypeNumber, ParamTypeBoolean:
+	case ParamTypeString, ParamTypeInteger, ParamTypeDouble, ParamTypeBoolean:
 		// valid
 	default:
 		return fmt.Errorf("invalid param type: %s", p.Type)
