@@ -59,7 +59,7 @@ func generate(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	var cfg *spec.Config = new(spec.Config)
+	var cfg *spec.Specification = new(spec.Specification)
 	err = yaml.Unmarshal(bytes, cfg)
 	if err != nil {
 		panic(err)

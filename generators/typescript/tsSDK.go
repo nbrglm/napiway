@@ -15,13 +15,13 @@ import (
 	"github.com/nbrglm/napiway/utils"
 )
 
-func GenerateTSSDK(genCfg spec.TsSDKGeneration, config *spec.Config) (err error) {
+func GenerateTSSDK(genCfg spec.TsSDKGeneration, spc *spec.Specification) (err error) {
 	if err := utils.ClearOutputDir(genCfg.OutputDir); err != nil {
 		return fmt.Errorf("failed to clear output directory: %w", err)
 	}
 
 	// write package.json
-	err = writePackageJsonFile(genCfg, config)
+	err = writePackageJsonFile(genCfg, spc)
 	if err != nil {
 		return err
 	}
@@ -41,28 +41,28 @@ func GenerateTSSDK(genCfg spec.TsSDKGeneration, config *spec.Config) (err error)
 	// TODO: write README.md
 
 	// gather data
-	endpoints := make([]EndpointData, len(config.Spec.Endpoints))
-	for idx := range config.Spec.Endpoints {
-		reqData, err := RequestResponsesDataFromEndpointDef(idx, &config.Spec)
+	endpoints := make([]EndpointData, len(spc.Endpoints))
+	for idx := range spc.Endpoints {
+		reqData, err := RequestResponsesDataFromEndpointDef(idx, spc)
 		if err != nil {
-			return fmt.Errorf("failed to get request and response data from endpoint (%s) definition: %w", config.Spec.Endpoints[idx].Name, err)
+			return fmt.Errorf("failed to get request and response data from endpoint (%s) definition: %w", spc.Endpoints[idx].Name, err)
 		}
 		endpoints[idx] = EndpointData{
-			Name:    config.Spec.Endpoints[idx].Name,
+			Name:    spc.Endpoints[idx].Name,
 			Request: reqData,
 		}
 	}
 
-	clientName := exportedName(strings.ReplaceAll(config.Spec.ApiName, " ", ""))
+	clientName := exportedName(strings.ReplaceAll(spc.ApiName, " ", ""))
 
 	apiFileData := TsSdkApiFileData{
 		ClientName:    clientName,
-		ClientVersion: config.Spec.Version,
+		ClientVersion: spc.Version,
 		Endpoints:     endpoints,
 	}
 
 	// write api.ts
-	err = writeApiFile(apiFileData, config, genCfg)
+	err = writeApiFile(apiFileData, genCfg)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func GenerateTSSDK(genCfg spec.TsSDKGeneration, config *spec.Config) (err error)
 	for idx, endpoint := range endpoints {
 		requests[idx] = endpoint.Request
 	}
-	types := TypesDataFromSpec(config)
+	types := TypesDataFromSpec(spc)
 	modelsFileData := TsSdkModelsFileData{
 		ClientName: clientName,
 
@@ -124,8 +124,8 @@ func writeModelsFile(modelsFileData TsSdkModelsFileData, genCfg spec.TsSDKGenera
 	return nil
 }
 
-func writeApiFile(apiFileData TsSdkApiFileData, config *spec.Config, genCfg spec.TsSDKGeneration) error {
-	apiFileContent, err := createTsSDKApiFile(&apiFileData, &config.Spec)
+func writeApiFile(apiFileData TsSdkApiFileData, genCfg spec.TsSDKGeneration) error {
+	apiFileContent, err := createTsSDKApiFile(&apiFileData)
 	if err != nil {
 		return err
 	}
@@ -163,10 +163,10 @@ func writeTsConfigFile(genCfg spec.TsSDKGeneration) error {
 	return nil
 }
 
-func writePackageJsonFile(genCfg spec.TsSDKGeneration, config *spec.Config) error {
+func writePackageJsonFile(genCfg spec.TsSDKGeneration, spc *spec.Specification) error {
 	packageJsonFileData := TsSdkPackageJsonTemplateData{
 		PackageName: genCfg.PackageName,
-		Version:     config.Spec.Version,
+		Version:     spc.Version,
 		Description: genCfg.Description,
 		Website:     genCfg.Website,
 		Repository:  genCfg.Repository,
@@ -200,7 +200,7 @@ func createTsSDKModelsFile(templateData *TsSdkModelsFileData) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func createTsSDKApiFile(data *TsSdkApiFileData, api *spec.Specification) ([]byte, error) {
+func createTsSDKApiFile(data *TsSdkApiFileData) ([]byte, error) {
 	var buf bytes.Buffer
 	tmpl, err := template.ParseFS(tsTemplates, "templates/*")
 	if err != nil {
@@ -256,7 +256,7 @@ func exportedName(name string) string {
 	return strings.ToUpper(name[:1]) + name[1:]
 }
 
-func TypesDataFromSpec(specification *spec.Config) []TypeData {
+func TypesDataFromSpec(specification *spec.Specification) []TypeData {
 	types := make([]TypeData, len(specification.Schemas))
 	for idx, schema := range specification.Schemas {
 		types[idx] = TypeData{
@@ -295,7 +295,7 @@ func RequestResponsesDataFromEndpointDef(endpointIdx int, specification *spec.Sp
 	responses := make([]ResponseData, len(endpoint.Responses))
 	has413 := false
 	for i, resp := range endpoint.Responses {
-		if resp.StatusCode == 413 {
+		if resp.Status == 413 {
 			has413 = true
 		}
 		var respBodyName *string
@@ -304,8 +304,8 @@ func RequestResponsesDataFromEndpointDef(endpointIdx int, specification *spec.Sp
 			respBodyName = &respBodyNameVal
 		}
 		responses[i] = ResponseData{
-			StatusCode:       resp.StatusCode,
-			Name:             exportedName(endpoint.Name + strconv.Itoa(resp.StatusCode)),
+			StatusCode:       resp.Status,
+			Name:             exportedName(endpoint.Name + strconv.Itoa(resp.Status)),
 			Description:      resp.Description,
 			RawBody:          resp.RawBody,
 			ContentType:      *resp.ContentType,

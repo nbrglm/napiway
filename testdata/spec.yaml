@@ -1,3 +1,11 @@
+name: Testing API
+apiName: TestingAPI
+version: "1.0.0"
+description: Spec for testing various features of the NApiWay Generator.
+website: https://github.com/nbrglm/napiway
+contact: contact@nbrglm.com
+license: Apache-2.0
+
 goServer:
   outputDir: ./out/server/api
   packageName: api
@@ -22,6 +30,35 @@ tsSdk:
     - NApiWay
     - Code Generation
   licenseFile: ../LICENSE
+
+auth:
+  - id: apiKeyAuth
+    name: APIKey
+    transportName: X-App-API-Key
+    type: header
+    description: Authentication method that denotes an API key passed in the request header.
+    format: "api_key"
+
+  - id: sessionTokenAuth
+    name: SessionToken
+    transportName: X-App-Session-Token
+    type: header
+    description: Authentication method that denotes a session token passed in the request header.
+    format: "session_token"
+
+  - id: refreshTokenAuth
+    name: RefreshToken
+    transportName: X-App-Refresh-Token
+    type: header
+    description: Authentication method that denotes a refresh token passed in the request header.
+    format: "refresh_token"
+
+  - id: adminTokenAuth
+    name: AdminToken
+    transportName: X-App-Admin-Token
+    type: header
+    description: Authentication method that denotes an admin token passed in the request header.
+    format: "admin_token"
 
 schemas:
   - name: HealthCheckResponseBody
@@ -129,192 +166,146 @@ schemas:
         required: false
         description: A detailed debug message for developers. Only passed if in debug mode.
 
-spec:
-  name: Testing API
-  apiName: TestingAPI
-  version: "1.0.0"
-  description: Spec for testing various features of the NApiWay Generator.
-  website: https://github.com/nbrglm/napiway
-  contact: contact@nbrglm.com
-  license: Apache-2.0
-
-  auth:
-    - id: apiKeyAuth
-      name: APIKey
-      transportName: X-App-API-Key
-      type: header
-      description: Authentication method that denotes an API key passed in the request header.
-      format: "api_key"
-
-    - id: sessionTokenAuth
-      name: SessionToken
-      transportName: X-App-Session-Token
-      type: header
-      description: Authentication method that denotes a session token passed in the request header.
-      format: "session_token"
-
-    - id: refreshTokenAuth
-      name: RefreshToken
-      transportName: X-App-Refresh-Token
-      type: header
-      description: Authentication method that denotes a refresh token passed in the request header.
-      format: "refresh_token"
-
-    - id: adminTokenAuth
-      name: AdminToken
-      transportName: X-App-Admin-Token
-      type: header
-      description: Authentication method that denotes an admin token passed in the request header.
-      format: "admin_token"
-
-  endpoints:
-    # ─────────────────────────────────────────────
-    # Auth params + Body
-    # ─────────────────────────────────────────────
-    - name: CreateUser
-      method: POST
-      path: /users/new
-      description: Create a new user in the system.
-      auth:
-        all:
-          - apiKeyAuth
-          - adminTokenAuth
-      bodyName: CreateUserRequestBody
-      responses:
-        - statusCode: 201
-          description: Successful response containing the created user information.
-          bodyName: CreateUserResponseBody
-        - statusCode: 400
-          description: Bad Request
-          bodyName: ErrorResponse
-        - statusCode: 500
-          description: Internal Server Error
-          bodyName: ErrorResponse
-    # ─────────────────────────────────────────────
-    # Path + Auth params
-    # ─────────────────────────────────────────────
-    - name: GetUser
-      method: GET
-      path: /users/{userId}
-      description: Retrieve user information by user ID.
-
-      auth:
-        all:
-          - apiKeyAuth
-          - sessionTokenAuth
-
-      pathParams:
-        - name: UserId
-          type: string
-          required: true
-          nonEmpty: true
-          description: The unique identifier of the user.
-          transportName: "userId"
-
-      responses:
-        - statusCode: 200
-          description: Successful response containing user information.
-          bodyName: User
-        - statusCode: 400
-          description: Bad Request
-          bodyName: ErrorResponse
-        - statusCode: 404
-          description: User Not Found
-          bodyName: ErrorResponse
-        - statusCode: 500
-          description: Internal Server Error
-          bodyName: ErrorResponse
-
-    # ─────────────────────────────────────────────
-    # Query + Auth params
-    # ─────────────────────────────────────────────
-    - name: ListUsers
-      method: GET
-      path: /users
-      description: List users with optional pagination.
-      auth:
-        all:
-          - apiKeyAuth
-          - adminTokenAuth
-      queryParams:
-        - name: PageNumber
-          type: int
-          required: false
-          description: The page number for pagination. Default = 0.
-          transportName: page
-        - name: PageSize
-          type: int
-          required: false
-          description: The number of items per page for pagination. Default = 10.
-          transportName: pageSize
-      responses:
-        - statusCode: 200
-          description: Successful response containing a list of users.
-          headers:
-            - name: RateLimitRemaining
-              transportName: X-RateLimit-Remaining
-              type: int
-              required: true
-              description: The number of remaining requests allowed in the current rate limit window.
-          bodyName: ListUsersResponseBody
-        - statusCode: 400
-          description: Bad Request
-          bodyName: ErrorResponse
-        - statusCode: 500
-          description: Internal Server Error
-          bodyName: ErrorResponse
-
-    - name: LogoutUser
-      method: GET
-      path: /users/logout
-      description: Logout the current user.
-      auth:
-        all:
-          - apiKeyAuth
-        any:
-          - sessionTokenAuth
-          - refreshTokenAuth
-      responses:
-        - statusCode: 200
-          description: Successful logout response.
-          bodyName: LogoutUserResponseBody
-        - statusCode: 400
-          description: Bad Request
-          bodyName: ErrorResponse
-        - statusCode: 500
-          description: Internal Server Error
-          bodyName: ErrorResponse
-
-    - name: WhoAmI
-      method: POST
-      path: /users/whoami
-      description: Get information about the currently authenticated user. Provide the request body as just a string which is set to the user id.
-      auth:
-        all:
-          - apiKeyAuth
-          - sessionTokenAuth
-      rawBody: true
-      responses:
-        - statusCode: 200
-          description: Successful response containing information about the currently authenticated user. Body is just a string with the user id provided in request body.
-          headers:
-            - name: RateLimitRemaining
-              transportName: X-RateLimit-Remaining
-              type: int
-              required: true
-              description: The number of remaining requests allowed in the current rate limit window.
-          rawBody: true
-        - statusCode: 400
-          description: Invalid Request
-
-    # ─────────────────────────────────────────────
-    # Simple health check endpoint
-    # ─────────────────────────────────────────────
-    - name: HealthCheck
-      method: GET
-      path: /health
-
-      responses:
-        - statusCode: 200
-          description: OK
-          bodyName: HealthCheckResponseBody
+endpoints:
+  # ─────────────────────────────────────────────
+  # Auth params + Body
+  # ─────────────────────────────────────────────
+  - name: CreateUser
+    method: POST
+    path: /users/new
+    description: Create a new user in the system.
+    auth:
+      all:
+        - apiKeyAuth
+        - adminTokenAuth
+    bodyName: CreateUserRequestBody
+    responses:
+      - status: 201
+        description: Successful response containing the created user information.
+        bodyName: CreateUserResponseBody
+      - status: 400
+        description: Bad Request
+        bodyName: ErrorResponse
+      - status: 500
+        description: Internal Server Error
+        bodyName: ErrorResponse
+  # ─────────────────────────────────────────────
+  # Path + Auth params
+  # ─────────────────────────────────────────────
+  - name: GetUser
+    method: GET
+    path: /users/{userId}
+    description: Retrieve user information by user ID.
+    auth:
+      all:
+        - apiKeyAuth
+        - sessionTokenAuth
+    pathParams:
+      - name: UserId
+        type: string
+        required: true
+        nonEmpty: true
+        description: The unique identifier of the user.
+        transportName: "userId"
+    responses:
+      - status: 200
+        description: Successful response containing user information.
+        bodyName: User
+      - status: 400
+        description: Bad Request
+        bodyName: ErrorResponse
+      - status: 404
+        description: User Not Found
+        bodyName: ErrorResponse
+      - status: 500
+        description: Internal Server Error
+        bodyName: ErrorResponse
+  # ─────────────────────────────────────────────
+  # Query + Auth params
+  # ─────────────────────────────────────────────
+  - name: ListUsers
+    method: GET
+    path: /users
+    description: List users with optional pagination.
+    auth:
+      all:
+        - apiKeyAuth
+        - adminTokenAuth
+    queryParams:
+      - name: PageNumber
+        type: int
+        required: false
+        description: The page number for pagination. Default = 0.
+        transportName: page
+      - name: PageSize
+        type: int
+        required: false
+        description: The number of items per page for pagination. Default = 10.
+        transportName: pageSize
+    responses:
+      - status: 200
+        description: Successful response containing a list of users.
+        headers:
+          - name: RateLimitRemaining
+            transportName: X-RateLimit-Remaining
+            type: int
+            required: true
+            description: The number of remaining requests allowed in the current rate limit window.
+        bodyName: ListUsersResponseBody
+      - status: 400
+        description: Bad Request
+        bodyName: ErrorResponse
+      - status: 500
+        description: Internal Server Error
+        bodyName: ErrorResponse
+  - name: LogoutUser
+    method: GET
+    path: /users/logout
+    description: Logout the current user.
+    auth:
+      all:
+        - apiKeyAuth
+      any:
+        - sessionTokenAuth
+        - refreshTokenAuth
+    responses:
+      - status: 200
+        description: Successful logout response.
+        bodyName: LogoutUserResponseBody
+      - status: 400
+        description: Bad Request
+        bodyName: ErrorResponse
+      - status: 500
+        description: Internal Server Error
+        bodyName: ErrorResponse
+  - name: WhoAmI
+    method: POST
+    path: /users/whoami
+    description: Get information about the currently authenticated user. Provide the request body as just a string which is set to the user id.
+    auth:
+      all:
+        - apiKeyAuth
+        - sessionTokenAuth
+    rawBody: true
+    responses:
+      - status: 200
+        description: Successful response containing information about the currently authenticated user. Body is just a string with the user id provided in request body.
+        headers:
+          - name: RateLimitRemaining
+            transportName: X-RateLimit-Remaining
+            type: int
+            required: true
+            description: The number of remaining requests allowed in the current rate limit window.
+        rawBody: true
+      - status: 400
+        description: Invalid Request
+  # ─────────────────────────────────────────────
+  # Simple health check endpoint
+  # ─────────────────────────────────────────────
+  - name: HealthCheck
+    method: GET
+    path: /health
+    responses:
+      - status: 200
+        description: OK
+        bodyName: HealthCheckResponseBody

@@ -13,7 +13,7 @@ import (
 	"golang.org/x/tools/imports"
 )
 
-func TypesDataFromSpec(specification *spec.Config) []TypeData {
+func TypesDataFromSpec(specification *spec.Specification) []TypeData {
 	var types []TypeData
 	for _, t := range specification.Schemas {
 		types = append(types, TypeData{
@@ -52,7 +52,7 @@ func RequestResponsesDataFromEndpointDef(endpointIdx int, specification *spec.Sp
 	responses := make([]ResponseData, len(endpoint.Responses))
 	has413 := false
 	for i, resp := range endpoint.Responses {
-		if resp.StatusCode == 413 {
+		if resp.Status == 413 {
 			has413 = true
 		}
 		var responseBodyName *string
@@ -61,8 +61,8 @@ func RequestResponsesDataFromEndpointDef(endpointIdx int, specification *spec.Sp
 			*responseBodyName = exportedName(*resp.BodyName)
 		}
 		responses[i] = ResponseData{
-			StatusCode:       resp.StatusCode,
-			Name:             exportedName(endpoint.Name + strconv.Itoa(resp.StatusCode)),
+			StatusCode:       resp.Status,
+			Name:             exportedName(endpoint.Name + strconv.Itoa(resp.Status)),
 			Description:      resp.Description,
 			RawBody:          resp.RawBody,
 			ContentType:      *resp.ContentType,

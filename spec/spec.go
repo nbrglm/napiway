@@ -9,47 +9,90 @@ import (
 
 type ServerLanguage string
 
-type Config struct {
-	Schemas  []*Schema           `yaml:"schemas"`
+type Specification struct {
+	// This is used in documentation.
+	Name string `yaml:"name"`
+	// This is used as the main identifier for the API, and will be used in code generation.
+	ApiName     string `yaml:"apiName"`
+	Version     string `yaml:"version"`
+	Description string `yaml:"description"`
+
+	// The website or documentation URL for the API
+	Website *string `yaml:"website,omitempty"`
+
+	// Contact email for the API
+	Contact *string `yaml:"contact,omitempty"`
+
+	// License information for the API, e.g., "MIT", "Apache-2.0", etc.
+	//
+	// This is an optional and freeform field.
+	License *string `yaml:"license,omitempty"`
+
 	GoServer *GoServerGeneration `yaml:"goServer,omitempty"`
 
 	GoSDK *GoSDKGeneration `yaml:"goSdk,omitempty"`
 
 	TsSDK *TsSDKGeneration `yaml:"tsSdk,omitempty"`
 
-	// Spec defining the API to be generated
-	Spec Specification `yaml:"spec"`
+	// The schemas used in the API.
+	//
+	// Each schema represents a data model that can be used in request bodies, response bodies, etc.
+	Schemas []*Schema `yaml:"schemas"`
+
+	// All possible authentication methods for the API.
+	Auth []AuthMethod `yaml:"auth,omitempty"`
+
+	// List of endpoint definitions.
+	//
+	// This will be used in code generation and documentation.
+	Endpoints []*Endpoint `yaml:"endpoints"`
 }
 
-func (c *Config) Validate() error {
-	if c == nil {
+func (s *Specification) Validate() error {
+	if s == nil {
 		return fmt.Errorf("config is required")
 	}
 
-	if c.GoServer == nil && c.GoSDK == nil && c.TsSDK == nil {
+	if s.ApiName == "" {
+		return fmt.Errorf("apiName is required")
+	}
+
+	if s.Version == "" {
+		return fmt.Errorf("version is required")
+	}
+
+	for _, endpoint := range s.Endpoints {
+		if err := endpoint.Validate(s.Auth); err != nil {
+			return fmt.Errorf("endpoint %s: %w", endpoint.Name, err)
+		}
+	}
+
+	for i, am := range s.Auth {
+		if err := am.Validate(); err != nil {
+			return fmt.Errorf("auth method %d: %w", i, err)
+		}
+	}
+
+	if s.GoServer == nil && s.GoSDK == nil && s.TsSDK == nil {
 		return fmt.Errorf("at least one of goServer, goSdk, or tsSdk generation must be specified")
 	}
 
-	if c.GoServer != nil {
-		if err := c.GoServer.Validate(); err != nil {
+	if s.GoServer != nil {
+		if err := s.GoServer.Validate(); err != nil {
 			return fmt.Errorf("invalid goServer configuration: %w", err)
 		}
 	}
 
-	if c.GoSDK != nil {
-		if err := c.GoSDK.Validate(); err != nil {
+	if s.GoSDK != nil {
+		if err := s.GoSDK.Validate(); err != nil {
 			return fmt.Errorf("invalid goSdk configuration: %w", err)
 		}
 	}
 
-	if c.TsSDK != nil {
-		if err := c.TsSDK.Validate(); err != nil {
+	if s.TsSDK != nil {
+		if err := s.TsSDK.Validate(); err != nil {
 			return fmt.Errorf("invalid tsSdk configuration: %w", err)
 		}
-	}
-
-	if err := c.Spec.Validate(); err != nil {
-		return fmt.Errorf("invalid spec: %w", err)
 	}
 
 	return nil
@@ -297,54 +340,6 @@ func (t *TsSDKGeneration) Validate() error {
 	return nil
 }
 
-type Specification struct {
-	// This is used in documentation.
-	Name string `yaml:"name"`
-	// This is used as the main identifier for the API, and will be used in code generation.
-	ApiName     string `yaml:"apiName"`
-	Version     string `yaml:"version"`
-	Description string `yaml:"description"`
-
-	// The website or documentation URL for the API
-	Website *string `yaml:"website,omitempty"`
-
-	// Contact email for the API
-	Contact *string `yaml:"contact,omitempty"`
-
-	// License information for the API, e.g., "MIT", "Apache-2.0", etc.
-	//
-	// This is an optional and freeform field.
-	License *string `yaml:"license,omitempty"`
-
-	// All possible authentication methods for the API.
-	Auth []AuthMethod `yaml:"auth,omitempty"`
-
-	// List of endpoint definitions.
-	//
-	// This will be used in code generation and documentation.
-	Endpoints []*Endpoint `yaml:"endpoints"`
-}
-
-func (s *Specification) Validate() error {
-	if s.ApiName == "" {
-		return fmt.Errorf("apiName is required")
-	}
-	if s.Version == "" {
-		return fmt.Errorf("version is required")
-	}
-	for _, endpoint := range s.Endpoints {
-		if err := endpoint.Validate(s.Auth); err != nil {
-			return fmt.Errorf("endpoint %s: %w", endpoint.Name, err)
-		}
-	}
-	for i, am := range s.Auth {
-		if err := am.Validate(); err != nil {
-			return fmt.Errorf("auth method %d: %w", i, err)
-		}
-	}
-	return nil
-}
-
 type EndpointAuthMode string
 
 const (
@@ -530,7 +525,7 @@ func (e *Endpoint) Validate(authMethods []AuthMethod) error {
 	// no validation here
 	// TODO: check bodyname validation during code generation data gathering step
 	for _, resp := range e.Responses {
-		code := resp.StatusCode
+		code := resp.Status
 		if code < 100 || code > 599 {
 			return fmt.Errorf("response %d: invalid HTTP status code", code)
 		}
@@ -568,7 +563,7 @@ func (e *Endpoint) Validate(authMethods []AuthMethod) error {
 }
 
 type Response struct {
-	StatusCode int `yaml:"statusCode"`
+	Status int `yaml:"status"`
 	// Description of the response
 	Description *string `yaml:"description,omitempty"`
 

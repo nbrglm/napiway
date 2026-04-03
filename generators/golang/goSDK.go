@@ -10,7 +10,7 @@ import (
 	"github.com/nbrglm/napiway/utils"
 )
 
-func GenerateGoSDK(cfg *spec.GoSDKGeneration, config *spec.Config) error {
+func GenerateGoSDK(cfg *spec.GoSDKGeneration, spc *spec.Specification) error {
 	if absOutputDir, err := filepath.Abs(cfg.OutputDir); err != nil {
 		return fmt.Errorf("failed to get absolute path of output directory: %w", err)
 	} else {
@@ -30,38 +30,38 @@ func GenerateGoSDK(cfg *spec.GoSDKGeneration, config *spec.Config) error {
 	packageName := modulePaths[len(modulePaths)-1]
 
 	// Types file
-	if err := generateAndWriteSdkTypesFile(cfg, config, packageName); err != nil {
+	if err := generateAndWriteSdkTypesFile(cfg, spc, packageName); err != nil {
 		return fmt.Errorf("failed to generate and write types file: %w", err)
 	}
 
 	// ReqRes Files
-	if err := generateAndWriteSdkReqResFiles(cfg, config, packageName); err != nil {
+	if err := generateAndWriteSdkReqResFiles(cfg, spc, packageName); err != nil {
 		return fmt.Errorf("failed to generate and write request and response files: %w", err)
 	}
 
 	// helpers file
 	helpersFilePath := filepath.Join(cfg.OutputDir, "helperFuncs.go")
-	if err := generateAndWriteHelperFuncsFile(packageName, config.Spec.ApiName, config.Spec.Version, helpersFilePath); err != nil {
+	if err := generateAndWriteHelperFuncsFile(packageName, spc.ApiName, spc.Version, helpersFilePath); err != nil {
 		return fmt.Errorf("failed to generate and write helper functions file: %w", err)
 	}
 
 	// client file
-	clientFileEndpoints := make([]EndpointData, len(config.Spec.Endpoints))
-	for idx := range config.Spec.Endpoints {
-		reqData, err := RequestResponsesDataFromEndpointDef(idx, &config.Spec)
+	clientFileEndpoints := make([]EndpointData, len(spc.Endpoints))
+	for idx := range spc.Endpoints {
+		reqData, err := RequestResponsesDataFromEndpointDef(idx, spc)
 		if err != nil {
-			return fmt.Errorf("failed to get request and response data from endpoint (%s) definition: %w", config.Spec.Endpoints[idx].Name, err)
+			return fmt.Errorf("failed to get request and response data from endpoint (%s) definition: %w", spc.Endpoints[idx].Name, err)
 		}
 		clientFileEndpoints[idx] = EndpointData{
-			Name:    config.Spec.Endpoints[idx].Name,
+			Name:    spc.Endpoints[idx].Name,
 			Request: reqData,
 		}
 	}
 	clientFilePath := filepath.Join(cfg.OutputDir, "client.go")
 	clientFileData := GoSdkClientFileData{
 		PackageName:   packageName,
-		ClientName:    exportedName(strings.ReplaceAll(config.Spec.ApiName, " ", "")),
-		ClientVersion: config.Spec.Version,
+		ClientName:    exportedName(strings.ReplaceAll(spc.ApiName, " ", "")),
+		ClientVersion: spc.Version,
 		Endpoints:     clientFileEndpoints,
 	}
 	clientFileContent, err := ExecuteTemplate("sdkClientFile", clientFileData)
@@ -99,8 +99,8 @@ func GenerateGoSDK(cfg *spec.GoSDKGeneration, config *spec.Config) error {
 	return nil
 }
 
-func generateAndWriteSdkTypesFile(cfg *spec.GoSDKGeneration, api *spec.Config, packageName string) error {
-	types := TypesDataFromSpec(api)
+func generateAndWriteSdkTypesFile(cfg *spec.GoSDKGeneration, spc *spec.Specification, packageName string) error {
+	types := TypesDataFromSpec(spc)
 	fileData := GoTypesFileData{
 		PackageName: packageName,
 		Types:       types,
@@ -117,13 +117,13 @@ func generateAndWriteSdkTypesFile(cfg *spec.GoSDKGeneration, api *spec.Config, p
 	return nil
 }
 
-func generateAndWriteSdkReqResFiles(cfg *spec.GoSDKGeneration, api *spec.Config, packageName string) error {
-	for idx := range api.Spec.Endpoints {
-		filePath := filepath.Join(cfg.OutputDir, fmt.Sprintf("%s.go", exportedName(api.Spec.Endpoints[idx].Name)))
+func generateAndWriteSdkReqResFiles(cfg *spec.GoSDKGeneration, spc *spec.Specification, packageName string) error {
+	for idx := range spc.Endpoints {
+		filePath := filepath.Join(cfg.OutputDir, fmt.Sprintf("%s.go", exportedName(spc.Endpoints[idx].Name)))
 
-		reqData, err := RequestResponsesDataFromEndpointDef(idx, &api.Spec)
+		reqData, err := RequestResponsesDataFromEndpointDef(idx, spc)
 		if err != nil {
-			return fmt.Errorf("failed to get request and response data from endpoint (%s) definition: %w", api.Spec.Endpoints[idx].Name, err)
+			return fmt.Errorf("failed to get request and response data from endpoint (%s) definition: %w", spc.Endpoints[idx].Name, err)
 		}
 
 		fileData := GoReqResFileData{
@@ -132,7 +132,7 @@ func generateAndWriteSdkReqResFiles(cfg *spec.GoSDKGeneration, api *spec.Config,
 		}
 		content, err := ExecuteTemplate("sdkReqResFile", fileData)
 		if err != nil {
-			return fmt.Errorf("failed to execute template for endpoint (%s): %w", api.Spec.Endpoints[idx].Name, err)
+			return fmt.Errorf("failed to execute template for endpoint (%s): %w", spc.Endpoints[idx].Name, err)
 		}
 		err = formatAndWriteFile(filePath, content)
 		if err != nil {
