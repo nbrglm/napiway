@@ -62,6 +62,9 @@ type WhoAmI200 struct {
 // ParseWhoAmIReq creates a new instance of WhoAmIReq by parsing the http.Request
 func ParseWhoAmIReq(w http.ResponseWriter, r *http.Request) (*WhoAmIReq, error) {
 	req := WhoAmIReq{}
+	var err error
+	// to silence unused variable error in case there are no parameters to parse
+	_ = err
 
 	// Parse path parameters, if any
 

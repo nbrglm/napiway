@@ -27,6 +27,9 @@ type HealthCheck200 struct {
 // ParseHealthCheckReq creates a new instance of HealthCheckReq by parsing the http.Request
 func ParseHealthCheckReq(w http.ResponseWriter, r *http.Request) (*HealthCheckReq, error) {
 	req := HealthCheckReq{}
+	var err error
+	// to silence unused variable error in case there are no parameters to parse
+	_ = err
 
 	// Parse path parameters, if any
 

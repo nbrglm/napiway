@@ -90,19 +90,24 @@ type ListUsers500 struct {
 // ParseListUsersReq creates a new instance of ListUsersReq by parsing the http.Request
 func ParseListUsersReq(w http.ResponseWriter, r *http.Request) (*ListUsersReq, error) {
 	req := ListUsersReq{}
+	var err error
+	// to silence unused variable error in case there are no parameters to parse
+	_ = err
 
 	// Parse path parameters, if any
 
 	// Parse query parameters, if any
 
-	valPageNumber, err := parseint64Param(r.URL.Query().Get("page"), "query: page", false)
+	var valPageNumber *int64
+	valPageNumber, err = parseint64Param(r.URL.Query().Get("page"), "query: page", false)
 	if err != nil {
 		return nil, err
 	}
 
 	req.PageNumber = valPageNumber
 
-	valPageSize, err := parseint64Param(r.URL.Query().Get("pageSize"), "query: pageSize", false)
+	var valPageSize *int64
+	valPageSize, err = parseint64Param(r.URL.Query().Get("pageSize"), "query: pageSize", false)
 	if err != nil {
 		return nil, err
 	}

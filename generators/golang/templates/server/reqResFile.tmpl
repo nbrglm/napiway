@@ -14,10 +14,14 @@ import (
 // Parse{{.Name}} creates a new instance of {{.Name}} by parsing the http.Request
 func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) {
   req := {{.Name}}{}
+  var err error
+  // to silence unused variable error in case there are no parameters to parse
+  _ = err
 
   // Parse path parameters, if any
   {{range .PathParams}}
-  val{{.Name}}, err := parse{{.Type}}Param(r.PathValue("{{.TransportName}}"), "path: {{.TransportName}}", {{.Required}})
+  var val{{.Name}} *{{.Type}}
+  val{{.Name}}, err = parse{{.Type}}Param(r.PathValue("{{.TransportName}}"), "path: {{.TransportName}}", {{.Required}})
   if err != nil {
     return nil, err
   }
@@ -30,7 +34,8 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
 
   // Parse query parameters, if any
   {{range .QueryParams}}
-  val{{.Name}}, err := parse{{.Type}}Param(r.URL.Query().Get("{{.TransportName}}"), "query: {{.TransportName}}", {{.Required}})
+  var val{{.Name}} *{{.Type}}
+  val{{.Name}}, err = parse{{.Type}}Param(r.URL.Query().Get("{{.TransportName}}"), "query: {{.TransportName}}", {{.Required}})
   if err != nil {
     return nil, err
   }
@@ -43,7 +48,8 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
 
   // Parse header parameters, if any
   {{range .HeaderParams}}
-  val{{.Name}}, err := parse{{.Type}}Param(r.Header.Get("{{.TransportName}}"), "header: {{.TransportName}}", {{.Required}})
+  var val{{.Name}} *{{.Type}}
+  val{{.Name}}, err = parse{{.Type}}Param(r.Header.Get("{{.TransportName}}"), "header: {{.TransportName}}", {{.Required}})
   if err != nil {
     return nil, err
   }
@@ -100,7 +106,8 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
   if err != nil {
     return nil, fmt.Errorf("error parsing request body: %w", err)
   }
-  body, err := Parse{{.RequestBodyName}}(bodyData)
+  var body *{{.RequestBodyName}}
+  body, err = Parse{{.RequestBodyName}}(bodyData)
   if err != nil {
     return nil, fmt.Errorf("error parsing request body: %w", err)
   }

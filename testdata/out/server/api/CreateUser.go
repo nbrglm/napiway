@@ -76,6 +76,9 @@ type CreateUser500 struct {
 // ParseCreateUserReq creates a new instance of CreateUserReq by parsing the http.Request
 func ParseCreateUserReq(w http.ResponseWriter, r *http.Request) (*CreateUserReq, error) {
 	req := CreateUserReq{}
+	var err error
+	// to silence unused variable error in case there are no parameters to parse
+	_ = err
 
 	// Parse path parameters, if any
 
@@ -110,11 +113,12 @@ func ParseCreateUserReq(w http.ResponseWriter, r *http.Request) (*CreateUserReq,
 	maxBodyBytes := int64(256 << 10) // Default max body bytes: 256KB
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
-	err := json.NewDecoder(r.Body).Decode(&bodyData)
+	err = json.NewDecoder(r.Body).Decode(&bodyData)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing request body: %w", err)
 	}
-	body, err := ParseCreateUserRequestBody(bodyData)
+	var body *CreateUserRequestBody
+	body, err = ParseCreateUserRequestBody(bodyData)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing request body: %w", err)
 	}

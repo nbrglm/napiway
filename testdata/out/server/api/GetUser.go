@@ -81,10 +81,14 @@ type GetUser500 struct {
 // ParseGetUserReq creates a new instance of GetUserReq by parsing the http.Request
 func ParseGetUserReq(w http.ResponseWriter, r *http.Request) (*GetUserReq, error) {
 	req := GetUserReq{}
+	var err error
+	// to silence unused variable error in case there are no parameters to parse
+	_ = err
 
 	// Parse path parameters, if any
 
-	valUserId, err := parsestringParam(r.PathValue("userId"), "path: userId", true)
+	var valUserId *string
+	valUserId, err = parsestringParam(r.PathValue("userId"), "path: userId", true)
 	if err != nil {
 		return nil, err
 	}

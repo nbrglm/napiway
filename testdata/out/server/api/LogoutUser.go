@@ -77,6 +77,9 @@ type LogoutUser500 struct {
 // ParseLogoutUserReq creates a new instance of LogoutUserReq by parsing the http.Request
 func ParseLogoutUserReq(w http.ResponseWriter, r *http.Request) (*LogoutUserReq, error) {
 	req := LogoutUserReq{}
+	var err error
+	// to silence unused variable error in case there are no parameters to parse
+	_ = err
 
 	// Parse path parameters, if any
 
