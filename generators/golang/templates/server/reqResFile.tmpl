@@ -96,7 +96,7 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
   maxBodyBytes := int64(256 << 10) // Default max body bytes: 256KB
   {{end}}
   r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
-  err := json.NewDecoder(r.Body).Decode(&bodyData)
+  err = json.NewDecoder(r.Body).Decode(&bodyData)
   if err != nil {
     return nil, fmt.Errorf("error parsing request body: %w", err)
   }
