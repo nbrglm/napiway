@@ -1,0 +1,25 @@
+{{define "enumTypeGenerator"}}
+{{$enumName := .Name}}
+type {{$enumName}} string
+
+const (
+{{range .Enum}}
+  {{$enumName}}{{.}} {{$enumName}} = "{{.}}"
+{{end}}
+)
+
+// New{{$enumName}} isn't required since enums are just strings.
+
+// Parse{{$enumName}} parses a string into a {{$enumName}} value, returning an error if the input is not a valid enum value.
+func Parse{{$enumName}}(data string) (*{{$enumName}}, error) {
+  switch data {
+{{range .Enum}}
+  case "{{.}}":
+    var enumValue {{$enumName}} = {{$enumName}}{{.}}
+    return &enumValue, nil
+{{end}}
+  default:
+    return nil, fmt.Errorf("invalid value for {{$enumName}}: %s", data)
+  }
+}
+{{end}}

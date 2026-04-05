@@ -263,6 +263,7 @@ func TypesDataFromSpec(specification *spec.Specification) []TypeData {
 			Name:        exportedName(schema.Name),
 			Description: schema.Description,
 			Fields:      getFieldsDataFromSpecFields(schema.Properties),
+			Enum:        schema.Enum,
 		}
 	}
 	sortTypesByName(&types)
@@ -409,6 +410,9 @@ func getAuthMethods(specification *spec.Specification, ids []string) ([]AuthMeth
 }
 
 func getFieldsDataFromSpecFields(fields []*spec.SchemaField) []TypeFieldData {
+	if len(fields) == 0 {
+		return nil
+	}
 	fieldsData := make([]TypeFieldData, len(fields))
 	for idx, field := range fields {
 		typ, _ := getTypeDataFieldTypeFromSpecFieldType(field.Type)
@@ -417,6 +421,7 @@ func getFieldsDataFromSpecFields(fields []*spec.SchemaField) []TypeFieldData {
 			Description: field.Description,
 			Type:        typ,
 			IsArray:     field.IsArray,
+			IsEnum:      field.IsEnum,
 			Required:    field.Required,
 			NonEmpty:    field.NonEmpty,
 		}

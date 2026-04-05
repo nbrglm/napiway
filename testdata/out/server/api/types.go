@@ -26,6 +26,18 @@ type CreateUserRequestBody struct {
 	// Must be non-empty
 	Email string `json:"Email"`
 
+	// An optional status of the user to be created. Just for testing optional enum support in the generator.
+	//
+	// Optional
+	//
+	OptionalStatus *UserStatus `json:"OptionalStatus,omitempty"`
+
+	// The status of the user to be created.
+	//
+	// Required
+	//
+	Status UserStatus `json:"Status"`
+
 	// The name of the user to be created.
 	//
 	// Required
@@ -39,12 +51,16 @@ func NewCreateUserRequestBody(
 
 	Email string,
 
+	Status UserStatus,
+
 	UserName string,
 
 ) *CreateUserRequestBody {
 	return &CreateUserRequestBody{
 
 		Email: Email,
+
+		Status: Status,
 
 		UserName: UserName,
 	}
@@ -59,6 +75,12 @@ func (o *CreateUserRequestBody) WithAge(value *int64) *CreateUserRequestBody {
 // WithArbitraryData sets the optional field ArbitraryData and returns the modified CreateUserRequestBody instance
 func (o *CreateUserRequestBody) WithArbitraryData(value *map[string]any) *CreateUserRequestBody {
 	o.ArbitraryData = value
+	return o
+}
+
+// WithOptionalStatus sets the optional field OptionalStatus and returns the modified CreateUserRequestBody instance
+func (o *CreateUserRequestBody) WithOptionalStatus(value *UserStatus) *CreateUserRequestBody {
+	o.OptionalStatus = value
 	return o
 }
 
@@ -122,6 +144,46 @@ func ParseCreateUserRequestBody(data map[string]any) (*CreateUserRequestBody, er
 
 	}
 
+	valOptionalStatus, ok := data["OptionalStatus"]
+	if !ok {
+
+		// skip, leave as zero value
+
+	} else {
+
+		valOptionalStatusStr, ok := valOptionalStatus.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'OptionalStatus' has incorrect type")
+		}
+		valOptionalStatusTyped, err := ParseUserStatus(valOptionalStatusStr)
+		if err != nil {
+			return body, fmt.Errorf("field 'OptionalStatus' is invalid: %w", err)
+		}
+
+		body.OptionalStatus = valOptionalStatusTyped
+
+	}
+
+	valStatus, ok := data["Status"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'Status'")
+
+	} else {
+
+		valStatusStr, ok := valStatus.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'Status' has incorrect type")
+		}
+		valStatusTyped, err := ParseUserStatus(valStatusStr)
+		if err != nil {
+			return body, fmt.Errorf("field 'Status' is invalid: %w", err)
+		}
+
+		body.Status = *valStatusTyped
+
+	}
+
 	valUserName, ok := data["UserName"]
 	if !ok {
 
@@ -154,6 +216,18 @@ type CreateUserResponseBody struct {
 	//
 	ArbitraryData *map[string]any `json:"ArbitraryData,omitempty"`
 
+	// An optional status of the user. Just for testing optional enum support in the generator.
+	//
+	// Optional
+	//
+	OptionalStatus *UserStatus `json:"OptionalStatus,omitempty"`
+
+	// The status of the user.
+	//
+	// Required
+	//
+	Status UserStatus `json:"Status"`
+
 	// The created user information.
 	//
 	// Required
@@ -164,10 +238,14 @@ type CreateUserResponseBody struct {
 // NewCreateUserResponseBody creates a new instance of CreateUserResponseBody with required fields as parameters
 func NewCreateUserResponseBody(
 
+	Status UserStatus,
+
 	User *User,
 
 ) *CreateUserResponseBody {
 	return &CreateUserResponseBody{
+
+		Status: Status,
 
 		User: User,
 	}
@@ -176,6 +254,12 @@ func NewCreateUserResponseBody(
 // WithArbitraryData sets the optional field ArbitraryData and returns the modified CreateUserResponseBody instance
 func (o *CreateUserResponseBody) WithArbitraryData(value *map[string]any) *CreateUserResponseBody {
 	o.ArbitraryData = value
+	return o
+}
+
+// WithOptionalStatus sets the optional field OptionalStatus and returns the modified CreateUserResponseBody instance
+func (o *CreateUserResponseBody) WithOptionalStatus(value *UserStatus) *CreateUserResponseBody {
+	o.OptionalStatus = value
 	return o
 }
 
@@ -194,6 +278,46 @@ func ParseCreateUserResponseBody(data map[string]any) (*CreateUserResponseBody, 
 		}
 
 		body.ArbitraryData = &valArbitraryDataTyped
+	}
+
+	valOptionalStatus, ok := data["OptionalStatus"]
+	if !ok {
+
+		// skip, leave as zero value
+
+	} else {
+
+		valOptionalStatusStr, ok := valOptionalStatus.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'OptionalStatus' has incorrect type")
+		}
+		valOptionalStatusTyped, err := ParseUserStatus(valOptionalStatusStr)
+		if err != nil {
+			return body, fmt.Errorf("field 'OptionalStatus' is invalid: %w", err)
+		}
+
+		body.OptionalStatus = valOptionalStatusTyped
+
+	}
+
+	valStatus, ok := data["Status"]
+	if !ok {
+
+		return body, fmt.Errorf("missing required field 'Status'")
+
+	} else {
+
+		valStatusStr, ok := valStatus.(string)
+		if !ok {
+			return body, fmt.Errorf("field 'Status' has incorrect type")
+		}
+		valStatusTyped, err := ParseUserStatus(valStatusStr)
+		if err != nil {
+			return body, fmt.Errorf("field 'Status' is invalid: %w", err)
+		}
+
+		body.Status = *valStatusTyped
+
 	}
 
 	valUser, ok := data["User"]
@@ -482,6 +606,7 @@ func ParseListUsersResponseBody(data map[string]any) (*ListUsersResponseBody, er
 		valUsersTyped := make([]User, 0, len(valUsersSlice))
 
 		for idx, item := range valUsersSlice {
+
 			itemMap, ok := item.(map[string]any)
 			if !ok {
 				return body, fmt.Errorf("element %d of field 'Users' has incorrect type", idx)
@@ -490,6 +615,7 @@ func ParseListUsersResponseBody(data map[string]any) (*ListUsersResponseBody, er
 			if err != nil {
 				return body, fmt.Errorf("element %d of field 'Users' is invalid: %w", idx, err)
 			}
+
 			valUsersTyped = append(valUsersTyped, *validatedItem)
 		}
 
@@ -720,4 +846,31 @@ func ParseUser(data map[string]any) (*User, error) {
 	}
 
 	return body, nil
+}
+
+type UserStatus string
+
+const (
+	UserStatusACTIVE UserStatus = "ACTIVE"
+
+	UserStatusINACTIVE_USER UserStatus = "INACTIVE_USER"
+)
+
+// NewUserStatus isn't required since enums are just strings.
+
+// ParseUserStatus parses a string into a UserStatus value, returning an error if the input is not a valid enum value.
+func ParseUserStatus(data string) (*UserStatus, error) {
+	switch data {
+
+	case "ACTIVE":
+		var enumValue UserStatus = UserStatusACTIVE
+		return &enumValue, nil
+
+	case "INACTIVE_USER":
+		var enumValue UserStatus = UserStatusINACTIVE_USER
+		return &enumValue, nil
+
+	default:
+		return nil, fmt.Errorf("invalid value for UserStatus: %s", data)
+	}
 }

@@ -71,6 +71,24 @@ export interface CreateUserRequestBody {
   
   
   /**
+  * An optional status of the user to be created. Just for testing optional enum support in the generator.
+  * Optional
+  * 
+  */
+  OptionalStatus?: UserStatus;
+
+  
+  
+  /**
+  * The status of the user to be created.
+  * Required
+  * 
+  */
+  Status: UserStatus;
+
+  
+  
+  /**
   * The name of the user to be created.
   * Required
   *  Must be non-empty
@@ -79,6 +97,7 @@ export interface CreateUserRequestBody {
 
   
 }
+
 
 /**
  * createCreateUserRequestBody creates a new instance of CreateUserRequestBody with required fields as parameters
@@ -105,6 +124,24 @@ export interface CreateUserResponseBody {
   
   
   /**
+  * An optional status of the user. Just for testing optional enum support in the generator.
+  * Optional
+  * 
+  */
+  OptionalStatus?: UserStatus;
+
+  
+  
+  /**
+  * The status of the user.
+  * Required
+  * 
+  */
+  Status: UserStatus;
+
+  
+  
+  /**
   * The created user information.
   * Required
   * 
@@ -113,6 +150,7 @@ export interface CreateUserResponseBody {
 
   
 }
+
 
 /**
  * createCreateUserResponseBody creates a new instance of CreateUserResponseBody with required fields as parameters
@@ -148,6 +186,7 @@ export interface ErrorResponse {
   
 }
 
+
 /**
  * createErrorResponse creates a new instance of ErrorResponse with required fields as parameters
  */
@@ -172,6 +211,7 @@ export interface HealthCheckResponseBody {
 
   
 }
+
 
 /**
  * createHealthCheckResponseBody creates a new instance of HealthCheckResponseBody with required fields as parameters
@@ -225,6 +265,7 @@ export interface ListUsersResponseBody {
   
 }
 
+
 /**
  * createListUsersResponseBody creates a new instance of ListUsersResponseBody with required fields as parameters
  */
@@ -249,6 +290,7 @@ export interface LogoutUserResponseBody {
 
   
 }
+
 
 /**
  * createLogoutUserResponseBody creates a new instance of LogoutUserResponseBody with required fields as parameters
@@ -311,10 +353,34 @@ export interface User {
   
 }
 
+
 /**
  * createUser creates a new instance of User with required fields as parameters
  */
 export function createUser(props: User): User {
+  return props;
+}
+
+
+/**
+ * Enum representing the status of a user.
+ */
+
+
+export type UserStatus =
+  "ACTIVE"
+   | "INACTIVE_USER";
+
+
+export const UserStatusACTIVE = "ACTIVE";
+
+export const UserStatusINACTIVE_USER = "INACTIVE_USER";
+
+
+/**
+ * createUserStatus creates a new instance of UserStatus with required fields as parameters
+ */
+export function createUserStatus(props: UserStatus): UserStatus {
   return props;
 }
 

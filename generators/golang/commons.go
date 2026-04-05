@@ -20,6 +20,7 @@ func TypesDataFromSpec(specification *spec.Specification) []TypeData {
 			Name:        exportedName(t.Name),
 			Description: t.Description,
 			Fields:      getFieldsDataFromSpecFields(t.Properties),
+			Enum:        t.Enum,
 		})
 	}
 	sortTypesByName(&types)
@@ -167,6 +168,9 @@ func getAuthMethods(specification *spec.Specification, ids []string) ([]AuthMeth
 }
 
 func getFieldsDataFromSpecFields(fields []*spec.SchemaField) []TypeFieldData {
+	if len(fields) == 0 {
+		return nil
+	}
 	res := make([]TypeFieldData, len(fields))
 	for i, field := range fields {
 		typ, isPrimitive := getTypeDataFieldTypeFromSpecFieldType(field.Type)
@@ -175,7 +179,7 @@ func getFieldsDataFromSpecFields(fields []*spec.SchemaField) []TypeFieldData {
 			ptrType = false
 		} else if !field.Required {
 			ptrType = true
-		} else if !isPrimitive {
+		} else if !isPrimitive && !field.IsEnum {
 			ptrType = true
 		}
 		var tagBuilder strings.Builder
@@ -192,6 +196,7 @@ func getFieldsDataFromSpecFields(fields []*spec.SchemaField) []TypeFieldData {
 			IsNonPrimitiveType: !isPrimitive,
 			Tag:                tagBuilder.String(),
 			IsArray:            field.IsArray,
+			IsEnum:             field.IsEnum,
 			Required:           field.Required,
 			NonEmpty:           field.NonEmpty,
 		}

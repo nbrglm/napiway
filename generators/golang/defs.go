@@ -79,6 +79,7 @@ type TypeData struct {
 	Description *string
 
 	Fields []TypeFieldData
+	Enum   []string
 }
 
 // TypeStr is a string representation of a Go type, used for code generation purposes.
@@ -115,6 +116,9 @@ type TypeFieldData struct {
 
 	// Used to put the [] in the right place for array types. If true, the generated code will use []Type for this type.
 	IsArray bool
+
+	// Used to indicate that the field is an enum and should be parsed appropriately.
+	IsEnum bool
 
 	Required bool
 

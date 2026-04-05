@@ -1,0 +1,44 @@
+{{define "structTypeGenerator"}}
+type {{.Name}} struct {
+{{range .Fields}}
+  {{template "fieldGenerator" .}}
+{{end}}
+}
+
+
+// New{{.Name}} creates a new instance of {{.Name}} with required fields as parameters
+func New{{.Name}}(
+  {{range .Fields}}
+  {{if .Required}}
+  {{ .Name }} {{if .IsArray}}[]{{end}}{{if .PtrType}}*{{end}}{{.Type}},
+  {{end}}
+  {{end}}
+) *{{.Name}} {
+  return &{{.Name}}{
+    {{range .Fields}}
+    {{if .Required}}
+    {{ .Name }}: {{.Name}},
+    {{end}}
+    {{end}}
+  }
+}
+
+{{ $typeName := .Name }}
+{{range .Fields}}
+{{if not .Required}}
+// With{{.Name}} sets the optional field {{.Name}} and returns the modified {{ $typeName }} instance
+func (o *{{ $typeName }}) With{{.Name}}(value {{if.PtrType}}*{{end}}{{if .IsArray}}[]{{end}}{{.Type}}) *{{ $typeName }} {
+  o.{{.Name}} = value
+  return o
+}
+{{end}}
+{{end}}
+
+func Parse{{.Name}}(data map[string]any) (*{{.Name}}, error) {
+  body := new({{.Name}})
+  {{range .Fields}}
+  {{template "parseAndValidateFieldGenerator" .}}
+  {{end}}
+  return body, nil
+}
+{{end}}

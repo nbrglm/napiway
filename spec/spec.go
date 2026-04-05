@@ -107,6 +107,13 @@ type Schema struct {
 
 	// The fields of the schema
 	Properties []*SchemaField `yaml:"properties,omitempty"`
+
+	// Mutually-exclusive with Properties.
+	//
+	// If this is set, Properties must be empty.
+	//
+	// Generates an enum type in the generated code, where the possible values are specified in this Enum field and the name is specified in the Name field.
+	Enum []string `yaml:"enum,omitempty"`
 }
 
 func (s *Schema) Validate() error {
@@ -117,15 +124,49 @@ func (s *Schema) Validate() error {
 	if s.Name == "" {
 		return fmt.Errorf("name is required for schema")
 	}
-	if len(s.Properties) == 0 {
-		return fmt.Errorf("at least one property is required for schema %s", s.Name)
+	if len(s.Properties) == 0 && len(s.Enum) == 0 {
+		return fmt.Errorf("Either one property or enum values must be provided for schema %s", s.Name)
 	}
-	for _, prop := range s.Properties {
-		if err := prop.Validate(); err != nil {
-			return fmt.Errorf("property %s: %w", prop.Name, err)
+	if len(s.Properties) > 0 && len(s.Enum) > 0 {
+		return fmt.Errorf("Properties and Enum cannot both be set for schema %s", s.Name)
+	}
+	if len(s.Properties) > 0 {
+		for _, prop := range s.Properties {
+			if err := prop.Validate(); err != nil {
+				return fmt.Errorf("property %s: %w", prop.Name, err)
+			}
+		}
+	}
+	if len(s.Enum) > 0 {
+		for _, enumValue := range s.Enum {
+			if strings.TrimSpace(enumValue) == "" {
+				return fmt.Errorf("enum value cannot be empty")
+			}
+			// if the value is not a valid Go identifier, return an error, since it will be used as a constant name in the generated code.
+			if !isValidGoIdentifier(enumValue) {
+				return fmt.Errorf("enum value '%s' is not a valid Go identifier", enumValue)
+			}
 		}
 	}
 	return nil
+}
+
+func isValidGoIdentifier(enumValue string) bool {
+	if enumValue == "" {
+		return false
+	}
+	for i, r := range enumValue {
+		if i == 0 {
+			if !unicode.IsLetter(r) && r != '_' {
+				return false
+			}
+		} else {
+			if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 type SchemaFieldType string
@@ -170,6 +211,11 @@ type SchemaField struct {
 
 	// Indicates whether the field is an array of the specified type
 	IsArray bool `yaml:"isArray,omitempty"`
+
+	// Indicates whether the field is an enum, which means it can only take a limited set of string values specified in the Enum field of the parent Schema.
+	//
+	// If true, the Type field must be set to the name of the enum schema.
+	IsEnum bool `yaml:"isEnum,omitempty"`
 
 	// Indicates whether the field is required
 	Required bool `yaml:"required,omitempty"`

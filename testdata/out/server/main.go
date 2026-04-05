@@ -281,8 +281,10 @@ func handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	resp := api.NewCreateUser201(
 		api.
 			NewCreateUserResponseBody(
-				mapToApiUser(user)).
-			WithArbitraryData(req.Body.ArbitraryData),
+				req.Body.Status,
+				mapToApiUser(user),
+			).
+			WithArbitraryData(req.Body.ArbitraryData).WithOptionalStatus(req.Body.OptionalStatus),
 	)
 
 	req.Write201(w, resp)

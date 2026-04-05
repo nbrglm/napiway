@@ -22,7 +22,7 @@
     body.{{.Name}} = {{if .PtrType}}&{{end}}val{{.Name}}Typed
   }
   {{else}}
-  {{/** Normal Field */}}
+  {{/* Normal Field */}}
   val{{.Name}}, ok := data["{{.Name}}"]
   if !ok {
     {{if or .Required .NonEmpty}}
@@ -43,7 +43,18 @@
     {{end}}
     val{{.Name}}Typed := make([]{{.Type}}, 0, len(val{{.Name}}Slice))
     {{if .IsNonPrimitiveType}}
+    {{/* Non-Primitive Type Array */}}
     for idx, item := range val{{.Name}}Slice {
+      {{if .IsEnum}}
+      itemStr, ok := item.(string)
+      if !ok {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' has incorrect type", idx)
+      }
+      validatedItem, err := Parse{{.Type}}(itemStr)
+      if err != nil {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' is invalid: %w", idx, err)
+      }
+      {{else}}
       itemMap, ok := item.(map[string]any)
       if !ok {
         return body, fmt.Errorf("element %d of field '{{.Name}}' has incorrect type", idx)
@@ -52,11 +63,54 @@
       if err != nil {
         return body, fmt.Errorf("element %d of field '{{.Name}}' is invalid: %w", idx, err)
       }
+      {{end}}
       val{{.Name}}Typed = append(val{{.Name}}Typed, *validatedItem)
     }
     {{else}}
+    {{/* Primitive Type Array */}}
+    for idx, item := range val{{.Name}}Slice {
+      {{if eq .Type "int64"}}
+      // JSON numbers are float64 by default, so we need to handle that case
+      switch v := item.(type) {
+      case float64:
+        val{{.Name}}Typed = append(val{{.Name}}Typed, {{.Type}}(v))
+      case int64:
+        val{{.Name}}Typed = append(val{{.Name}}Typed, {{.Type}}(v))
+      default:
+        return body, fmt.Errorf("element %d of field '{{.Name}}' has incorrect type", idx)
+      }
+      {{else if eq .Type "string"}}
+      itemStr, ok := item.(string)
+      if !ok {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' has incorrect type", idx)
+      }
+      itemStr = strings.TrimSpace(itemStr)
+      {{if or .NonEmpty .Required}}
+      if len(itemStr) == 0 {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' must be non-empty", idx)
+      }
+      {{end}}
+      val{{.Name}}Typed = append(val{{.Name}}Typed, itemStr)
+      {{else}}
+      itemTyped, ok := item.({{.Type}})
+      if !ok {
+        return body, fmt.Errorf("element %d of field '{{.Name}}' has incorrect type", idx)
+      }
+      val{{.Name}}Typed = append(val{{.Name}}Typed, itemTyped)
+      {{end}}
+    }
     {{end}}
     {{else if .IsNonPrimitiveType}}
+    {{if .IsEnum}}
+    val{{.Name}}Str, ok := val{{.Name}}.(string)
+    if !ok {
+      return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
+    }
+    val{{.Name}}Typed, err := Parse{{.Type}}(val{{.Name}}Str)
+    if err != nil {
+      return body, fmt.Errorf("field '{{.Name}}' is invalid: %w", err)
+    }
+    {{else}}
     val{{.Name}}Map, ok := val{{.Name}}.(map[string]any)
     if !ok {
       return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
@@ -65,6 +119,7 @@
     if err != nil {
       return body, fmt.Errorf("field '{{.Name}}' is invalid: %w", err)
     }
+    {{end}}
     {{else}}
     {{if eq .Type "int64"}}
     var val{{.Name}}Typed int64

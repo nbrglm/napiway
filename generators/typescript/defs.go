@@ -75,6 +75,7 @@ type TypeData struct {
 	Description *string
 
 	Fields []TypeFieldData
+	Enum   []string
 }
 
 const (
@@ -90,6 +91,7 @@ type TypeFieldData struct {
 	Description *string
 	Type        string
 	IsArray     bool
+	IsEnum      bool
 	Required    bool
 	NonEmpty    bool
 }

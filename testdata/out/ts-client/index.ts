@@ -273,12 +273,13 @@ async function testCreateUser(api: sdk.TestingAPI) {
       {
         UserName: "Test User",
         Email: "test@example.com",
+        Status: sdk.UserStatusACTIVE,
       },
     )
   }
   // No need for a try/catch as an error isn't expected for this case to pass
   const r1 = await api.CreateUser(validWithoutOptionalReq)
-  if (r1.StatusCode == 201 && r1.Response201.Body.User.Email == "test@example.com")
+  if (r1.StatusCode == 201 && r1.Response201.Body.User.Email == "test@example.com" && r1.Response201.Body.Status == sdk.UserStatusACTIVE)
     results["CreateUserValidOperationWithoutOptionalField"] = true;
   else
     results["CreateUserValidOperationWithoutOptionalField"] = false;
@@ -291,12 +292,14 @@ async function testCreateUser(api: sdk.TestingAPI) {
         UserName: "Test User",
         Email: "test@example.com",
         Age: AGE,
+        Status: sdk.UserStatusACTIVE,
+        OptionalStatus: sdk.UserStatusINACTIVE_USER,
       },
     )
   }
   // No need for a try/catch as an error isn't expected for this case to pass
   const r2 = await api.CreateUser(validWithOptionalReq)
-  if (r2.StatusCode == 201 && r2.Response201.Body.User.Age == AGE)
+  if (r2.StatusCode == 201 && r2.Response201.Body.User.Age == AGE && r2.Response201.Body.OptionalStatus == sdk.UserStatusINACTIVE_USER)
     results["CreateUserValidOperationWithOptionalField"] = true;
   else
     results["CreateUserValidOperationWithOptionalField"] = false;
@@ -309,6 +312,7 @@ async function testCreateUser(api: sdk.TestingAPI) {
       {
         UserName: "Test User",
         Email: "test@example.com",
+        Status: sdk.UserStatusACTIVE,
         ArbitraryData: arbitraryData,
       },
     )

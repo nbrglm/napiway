@@ -5,11 +5,23 @@
  * {{.Description}}
  */
 {{end}}
+{{- if .Enum}}
+{{$enumName := .Name}}
+export type {{$enumName}} = 
+  {{- range $index, $value := .Enum}}
+  {{if $index}} | {{end}}"{{$value}}"
+  {{- end}};
+
+{{range .Enum}}
+export const {{$enumName}}{{.}} = "{{.}}";
+{{end}}
+{{- else}}
 export interface {{.Name}} {
   {{range .Fields}}
   {{template "fieldGenerator" .}}
   {{end}}
 }
+{{end}}
 
 /**
  * create{{.Name}} creates a new instance of {{.Name}} with required fields as parameters

@@ -314,6 +314,7 @@ func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (CreateUserResult,
 		VALID_API_KEY,
 		sdk.NewCreateUserRequestBody(
 			"test@example.com",
+			sdk.UserStatusACTIVE,
 			"Test User",
 		),
 	)
@@ -322,23 +323,31 @@ func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (CreateUserResult,
 		return result, err
 	}
 	if resOptionalFieldMissing.StatusCode == 201 && resOptionalFieldMissing.Response201.Body.User.Email == "test@example.com" {
-		result.ValidOperationWithoutOptionalField = true
+		if resOptionalFieldMissing.Response201.Body.Status == sdk.UserStatusACTIVE {
+			result.ValidOperationWithoutOptionalField = true
+		}
 	}
+
+	optionalUserStatus := sdk.UserStatusINACTIVE_USER
 
 	reqOptionalFieldPresent := sdk.NewCreateUserReq(
 		VALID_ADMIN_TOKEN,
 		VALID_API_KEY,
 		sdk.NewCreateUserRequestBody(
 			"test@example.com",
+			optionalUserStatus,
 			"Test User",
-		).WithAge(&AGE),
+		).WithAge(&AGE).WithOptionalStatus(&optionalUserStatus),
 	)
 	resOptionalFieldPresent, err := api.CreateUser(ctx, reqOptionalFieldPresent)
 	if err != nil {
 		return result, err
 	}
 	if resOptionalFieldPresent.StatusCode == 201 && resOptionalFieldPresent.Response201.Body.User.Age != nil && *resOptionalFieldPresent.Response201.Body.User.Age == AGE {
-		result.ValidOperationWithOptionalField = true
+		// Check if the optional status is set correctly
+		if resOptionalFieldPresent.Response201.Body.OptionalStatus != nil && *resOptionalFieldPresent.Response201.Body.OptionalStatus == optionalUserStatus {
+			result.ValidOperationWithOptionalField = true
+		}
 	}
 
 	arbitraryDataSent := map[string]any{
@@ -352,6 +361,7 @@ func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (CreateUserResult,
 		VALID_API_KEY,
 		sdk.NewCreateUserRequestBody(
 			"test@example.com",
+			sdk.UserStatusINACTIVE_USER,
 			"Test User",
 		).WithArbitraryData(&arbitraryDataSent),
 	)
@@ -361,7 +371,9 @@ func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (CreateUserResult,
 	}
 	if resWithArbitraryData.StatusCode == 201 && resWithArbitraryData.Response201.Body.User.Email == "test@example.com" {
 		if resWithArbitraryData.Response201.Body.ArbitraryData != nil && maps.Equal(arbitraryDataSent, *resWithArbitraryData.Response201.Body.ArbitraryData) {
-			result.ValidOperationWithArbitraryData = true
+			if resWithArbitraryData.Response201.Body.OptionalStatus == nil && resWithArbitraryData.Response201.Body.Status == sdk.UserStatusINACTIVE_USER {
+				result.ValidOperationWithArbitraryData = true
+			}
 		}
 	}
 

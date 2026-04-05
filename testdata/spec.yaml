@@ -97,6 +97,12 @@ schemas:
         required: true
         description: The total number of users available.
 
+  - name: UserStatus
+    description: Enum representing the status of a user.
+    enum:
+      - ACTIVE
+      - INACTIVE_USER
+
   - name: CreateUserRequestBody
     description: Request body for creating a new user.
     properties:
@@ -114,6 +120,16 @@ schemas:
         type: int
         required: false
         description: The age of the user to be created.
+      - name: Status
+        type: UserStatus
+        required: true
+        isEnum: true
+        description: The status of the user to be created.
+      - name: OptionalStatus
+        type: UserStatus
+        required: false
+        isEnum: true
+        description: An optional status of the user to be created. Just for testing optional enum support in the generator.
       - name: ArbitraryData
         type: freeFormObject
         description: An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator. This is returned by the server in the response body.
@@ -124,6 +140,16 @@ schemas:
         type: User
         required: true
         description: The created user information.
+      - name: Status
+        type: UserStatus
+        required: true
+        isEnum: true
+        description: The status of the user.
+      - name: OptionalStatus
+        type: UserStatus
+        required: false
+        isEnum: true
+        description: An optional status of the user. Just for testing optional enum support in the generator.
       - name: ArbitraryData
         type: freeFormObject
         description: An object that can contain any arbitrary data related to the user list response. Just for testing freeForm object support in the generator.
