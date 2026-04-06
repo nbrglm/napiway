@@ -2,8 +2,61 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 )
+
+// GetAdminToken extracts the AdminToken Authentication (header: "X-App-Admin-Token") from the request and returns it as a string.
+func GetAdminToken(r *http.Request) (string, error) {
+	authHeader := r.Header.Get("X-App-Admin-Token")
+	if authHeader == "" {
+		return "", fmt.Errorf("missing auth header: %s", "AdminToken")
+	}
+	authHeader = strings.TrimSpace(authHeader)
+	if authHeader == "" {
+		return "", fmt.Errorf("empty auth header: %s", "AdminToken")
+	}
+	return authHeader, nil
+}
+
+// GetAPIKey extracts the APIKey Authentication (header: "X-App-API-Key") from the request and returns it as a string.
+func GetAPIKey(r *http.Request) (string, error) {
+	authHeader := r.Header.Get("X-App-API-Key")
+	if authHeader == "" {
+		return "", fmt.Errorf("missing auth header: %s", "APIKey")
+	}
+	authHeader = strings.TrimSpace(authHeader)
+	if authHeader == "" {
+		return "", fmt.Errorf("empty auth header: %s", "APIKey")
+	}
+	return authHeader, nil
+}
+
+// GetRefreshToken extracts the RefreshToken Authentication (header: "X-App-Refresh-Token") from the request and returns it as a string.
+func GetRefreshToken(r *http.Request) (string, error) {
+	authHeader := r.Header.Get("X-App-Refresh-Token")
+	if authHeader == "" {
+		return "", fmt.Errorf("missing auth header: %s", "RefreshToken")
+	}
+	authHeader = strings.TrimSpace(authHeader)
+	if authHeader == "" {
+		return "", fmt.Errorf("empty auth header: %s", "RefreshToken")
+	}
+	return authHeader, nil
+}
+
+// GetSessionToken extracts the SessionToken Authentication (header: "X-App-Session-Token") from the request and returns it as a string.
+func GetSessionToken(r *http.Request) (string, error) {
+	authHeader := r.Header.Get("X-App-Session-Token")
+	if authHeader == "" {
+		return "", fmt.Errorf("missing auth header: %s", "SessionToken")
+	}
+	authHeader = strings.TrimSpace(authHeader)
+	if authHeader == "" {
+		return "", fmt.Errorf("empty auth header: %s", "SessionToken")
+	}
+	return authHeader, nil
+}
 
 type CreateUserRequestBody struct {
 

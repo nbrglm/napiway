@@ -3,6 +3,8 @@ package golang
 type GoTypesFileData struct {
 	PackageName string
 
+	AuthMethods []AuthMethodData
+
 	Types []TypeData
 }
 

@@ -41,6 +41,7 @@ func generateAndWriteServerTypesFile(cfg *spec.GoServerGeneration, spc *spec.Spe
 	fileData := GoTypesFileData{
 		PackageName: cfg.PackageName,
 		Types:       types,
+		AuthMethods: AuthMethodsFromSpec(spc),
 	}
 	filePath := filepath.Join(cfg.OutputDir, "types.go")
 	content, err := ExecuteTemplate("serverTypesFile", fileData)

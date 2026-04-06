@@ -27,6 +27,22 @@ func TypesDataFromSpec(specification *spec.Specification) []TypeData {
 	return types
 }
 
+func AuthMethodsFromSpec(specification *spec.Specification) []AuthMethodData {
+	authMethods := make([]AuthMethodData, len(specification.Auth))
+	for i, auth := range specification.Auth {
+		authMethods[i] = AuthMethodData{
+			ID:            auth.ID,
+			Name:          exportedName(auth.Name),
+			TransportName: auth.TransportName,
+			Type:          AuthMethodType(auth.Type),
+			Description:   auth.Description,
+			Format:        auth.Format,
+		}
+	}
+	sortAuthMethodsByID(&authMethods)
+	return authMethods
+}
+
 func RequestResponsesDataFromEndpointDef(endpointIdx int, specification *spec.Specification) (RequestData, error) {
 	endpoint := specification.Endpoints[endpointIdx]
 

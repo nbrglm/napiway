@@ -10,6 +10,25 @@ import (
   "strings"
 )
 
+{{if .AuthMethods}}
+{{range .AuthMethods}}
+{{if eq .Type "header"}}
+// Get{{.Name}} extracts the {{.Name}} Authentication (header: "{{.TransportName}}") from the request and returns it as a string.
+func Get{{.Name}}(r *http.Request) (string, error) {
+  authHeader := r.Header.Get("{{.TransportName}}")
+  if authHeader == "" {
+    return "", fmt.Errorf("missing auth header: %s", "{{.Name}}")
+  }
+  authHeader = strings.TrimSpace(authHeader)
+  if authHeader == "" {
+    return "", fmt.Errorf("empty auth header: %s", "{{.Name}}")
+  }
+  return authHeader, nil
+}
+{{end}}
+{{end}}
+{{end}}
+
 {{if .Types}}
 {{template "typeGenerator" .}}
 {{end}}
