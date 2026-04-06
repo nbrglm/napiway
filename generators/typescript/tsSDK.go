@@ -262,7 +262,7 @@ func TypesDataFromSpec(specification *spec.Specification) []TypeData {
 		types[idx] = TypeData{
 			Name:        exportedName(schema.Name),
 			Description: schema.Description,
-			Fields:      getFieldsDataFromSpecFields(schema.Properties),
+			Fields:      getFieldsDataFromSpecFields(schema.Properties, specification.Schemas),
 			Enum:        schema.Enum,
 		}
 	}
@@ -409,19 +409,20 @@ func getAuthMethods(specification *spec.Specification, ids []string) ([]AuthMeth
 	return ams, nil
 }
 
-func getFieldsDataFromSpecFields(fields []*spec.SchemaField) []TypeFieldData {
+func getFieldsDataFromSpecFields(fields []*spec.SchemaField, schemas []*spec.Schema) []TypeFieldData {
 	if len(fields) == 0 {
 		return nil
 	}
 	fieldsData := make([]TypeFieldData, len(fields))
 	for idx, field := range fields {
-		typ, _ := getTypeDataFieldTypeFromSpecFieldType(field.Type)
+		typ, isPrimitive := getTypeDataFieldTypeFromSpecFieldType(field.Type)
+		isEnum := IsTypeEnum(isPrimitive, typ, schemas)
 		fieldsData[idx] = TypeFieldData{
 			Name:        exportedName(field.Name),
 			Description: field.Description,
 			Type:        typ,
 			IsArray:     field.IsArray,
-			IsEnum:      field.IsEnum,
+			IsEnum:      isEnum,
 			Required:    field.Required,
 			NonEmpty:    field.NonEmpty,
 		}
@@ -477,4 +478,16 @@ func sortParamsByName(params *[]ParamData) {
 	slices.SortFunc(*params, func(a, b ParamData) int {
 		return strings.Compare(a.Name, b.Name)
 	})
+}
+
+func IsTypeEnum(isPrimitive bool, typ string, schemas []*spec.Schema) bool {
+	if !isPrimitive {
+		// Check if the type is an enum by looking for a schema with the same name and checking if it has a non-empty Enum field
+		for _, schema := range schemas {
+			if schema.Name == typ && len(schema.Enum) > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }

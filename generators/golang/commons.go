@@ -19,7 +19,7 @@ func TypesDataFromSpec(specification *spec.Specification) []TypeData {
 		types = append(types, TypeData{
 			Name:        exportedName(t.Name),
 			Description: t.Description,
-			Fields:      getFieldsDataFromSpecFields(t.Properties),
+			Fields:      getFieldsDataFromSpecFields(t.Properties, specification.Schemas),
 			Enum:        t.Enum,
 		})
 	}
@@ -183,19 +183,20 @@ func getAuthMethods(specification *spec.Specification, ids []string) ([]AuthMeth
 	return ams, nil
 }
 
-func getFieldsDataFromSpecFields(fields []*spec.SchemaField) []TypeFieldData {
+func getFieldsDataFromSpecFields(fields []*spec.SchemaField, schemas []*spec.Schema) []TypeFieldData {
 	if len(fields) == 0 {
 		return nil
 	}
 	res := make([]TypeFieldData, len(fields))
 	for i, field := range fields {
 		typ, isPrimitive := getTypeDataFieldTypeFromSpecFieldType(field.Type)
+		isEnum := IsTypeEnum(isPrimitive, typ, schemas)
 		ptrType := false
 		if field.IsArray {
 			ptrType = false
 		} else if !field.Required {
 			ptrType = true
-		} else if !isPrimitive && !field.IsEnum {
+		} else if !isPrimitive && !isEnum {
 			ptrType = true
 		}
 		var tagBuilder strings.Builder
@@ -212,7 +213,7 @@ func getFieldsDataFromSpecFields(fields []*spec.SchemaField) []TypeFieldData {
 			IsNonPrimitiveType: !isPrimitive,
 			Tag:                tagBuilder.String(),
 			IsArray:            field.IsArray,
-			IsEnum:             field.IsEnum,
+			IsEnum:             isEnum,
 			Required:           field.Required,
 			NonEmpty:           field.NonEmpty,
 		}
@@ -360,4 +361,16 @@ func generateAndWriteHelperFuncsFile(packageName, clientName, version, filePath 
 		return fmt.Errorf("failed to execute helper funcs template: %w", err)
 	}
 	return formatAndWriteFile(filePath, buf.Bytes())
+}
+
+func IsTypeEnum(isPrimitive bool, typ string, schemas []*spec.Schema) bool {
+	if !isPrimitive {
+		// Check if the type is an enum by looking for a schema with the same name and checking if it has a non-empty Enum field
+		for _, schema := range schemas {
+			if schema.Name == typ && len(schema.Enum) > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }

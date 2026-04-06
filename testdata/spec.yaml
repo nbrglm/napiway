@@ -123,12 +123,10 @@ schemas:
       - name: Status
         type: UserStatus
         required: true
-        isEnum: true
         description: The status of the user to be created.
       - name: OptionalStatus
         type: UserStatus
         required: false
-        isEnum: true
         description: An optional status of the user to be created. Just for testing optional enum support in the generator.
       - name: ArbitraryData
         type: freeFormObject
@@ -143,12 +141,10 @@ schemas:
       - name: Status
         type: UserStatus
         required: true
-        isEnum: true
         description: The status of the user.
       - name: OptionalStatus
         type: UserStatus
         required: false
-        isEnum: true
         description: An optional status of the user. Just for testing optional enum support in the generator.
       - name: ArbitraryData
         type: freeFormObject

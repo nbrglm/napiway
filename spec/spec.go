@@ -212,11 +212,6 @@ type SchemaField struct {
 	// Indicates whether the field is an array of the specified type
 	IsArray bool `yaml:"isArray,omitempty"`
 
-	// Indicates whether the field is an enum, which means it can only take a limited set of string values specified in the Enum field of the parent Schema.
-	//
-	// If true, the Type field must be set to the name of the enum schema.
-	IsEnum bool `yaml:"isEnum,omitempty"`
-
 	// Indicates whether the field is required
 	Required bool `yaml:"required,omitempty"`
 
