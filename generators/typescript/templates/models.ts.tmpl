@@ -131,8 +131,8 @@ export async function Parse{{.Name}}(resp: Response): Promise<{{.Name}}> {
   );
   {{else if .RawBody}}
   result.RawBody = resp;
-  return result;
   {{end}}
+  return result;
 }
 {{else}}
 // {{.Name}} response has no headers or body

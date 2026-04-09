@@ -457,6 +457,7 @@ export async function ParseCreateUser201(resp: Response): Promise<CreateUser201>
     }
   );
   
+  return result;
 }
 
 
@@ -487,6 +488,7 @@ export async function ParseCreateUser400(resp: Response): Promise<CreateUser400>
     }
   );
   
+  return result;
 }
 
 
@@ -522,6 +524,7 @@ export async function ParseCreateUser500(resp: Response): Promise<CreateUser500>
     }
   );
   
+  return result;
 }
 
 
@@ -600,6 +603,7 @@ export async function ParseGetUser200(resp: Response): Promise<GetUser200> {
     }
   );
   
+  return result;
 }
 
 
@@ -630,6 +634,7 @@ export async function ParseGetUser400(resp: Response): Promise<GetUser400> {
     }
   );
   
+  return result;
 }
 
 
@@ -660,6 +665,7 @@ export async function ParseGetUser404(resp: Response): Promise<GetUser404> {
     }
   );
   
+  return result;
 }
 
 
@@ -690,6 +696,7 @@ export async function ParseGetUser500(resp: Response): Promise<GetUser500> {
     }
   );
   
+  return result;
 }
 
 
@@ -790,6 +797,7 @@ export async function ParseListUsers200(resp: Response): Promise<ListUsers200> {
     }
   );
   
+  return result;
 }
 
 
@@ -820,6 +828,7 @@ export async function ParseListUsers400(resp: Response): Promise<ListUsers400> {
     }
   );
   
+  return result;
 }
 
 
@@ -850,6 +859,7 @@ export async function ParseListUsers500(resp: Response): Promise<ListUsers500> {
     }
   );
   
+  return result;
 }
 
 
@@ -927,6 +937,7 @@ export async function ParseLogoutUser200(resp: Response): Promise<LogoutUser200>
     }
   );
   
+  return result;
 }
 
 
@@ -957,6 +968,7 @@ export async function ParseLogoutUser400(resp: Response): Promise<LogoutUser400>
     }
   );
   
+  return result;
 }
 
 
@@ -987,6 +999,7 @@ export async function ParseLogoutUser500(resp: Response): Promise<LogoutUser500>
     }
   );
   
+  return result;
 }
 
 
@@ -1056,8 +1069,8 @@ export async function ParseWhoAmI200(resp: Response): Promise<WhoAmI200> {
   
   
   result.RawBody = resp;
-  return result;
   
+  return result;
 }
 
 
@@ -1108,6 +1121,7 @@ export async function ParseHealthCheck200(resp: Response): Promise<HealthCheck20
     }
   );
   
+  return result;
 }
 
 
