@@ -11,6 +11,7 @@ import (
 
 {{template "reqResGenerator" .}}
 {{$requestName := .Name}}
+{{$zeroReturnVal := printf "&%v{}" $requestName}}
 // Parse{{.Name}} creates a new instance of {{.Name}} by parsing the http.Request
 func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) {
   req := {{.Name}}{}
@@ -23,7 +24,7 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
   var val{{.Name}} *{{.Type}}
   val{{.Name}}, err = parse{{.Type}}Param(r.PathValue("{{.TransportName}}"), "path: {{.TransportName}}", {{.Required}})
   if err != nil {
-    return nil, err
+    return {{$zeroReturnVal}}, err
   }
   {{if .Required}}
   req.{{.Name}} = *val{{.Name}}
@@ -37,7 +38,7 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
   var val{{.Name}} *{{.Type}}
   val{{.Name}}, err = parse{{.Type}}Param(r.URL.Query().Get("{{.TransportName}}"), "query: {{.TransportName}}", {{.Required}})
   if err != nil {
-    return nil, err
+    return {{$zeroReturnVal}}, err
   }
   {{if .Required}}
   req.{{.Name}} = *val{{.Name}}
@@ -51,7 +52,7 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
   var val{{.Name}} *{{.Type}}
   val{{.Name}}, err = parse{{.Type}}Param(r.Header.Get("{{.TransportName}}"), "header: {{.TransportName}}", {{.Required}})
   if err != nil {
-    return nil, err
+    return {{$zeroReturnVal}}, err
   }
   {{if .Required}}
   req.{{.Name}} = *val{{.Name}}
@@ -66,7 +67,7 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
   val{{.Name}} := r.Header.Get("{{.TransportName}}")
   val{{.Name}} = strings.TrimSpace(val{{.Name}})
   if val{{.Name}} == "" {
-    return nil, fmt.Errorf("missing required authentication: header {{.TransportName}}")
+    return {{$zeroReturnVal}}, fmt.Errorf("missing required authentication: header {{.TransportName}}")
   } else {
     req.{{.Name}}Auth = val{{.Name}}
   }
@@ -88,7 +89,7 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
   {{end}}
   {{end}}
   if !anyAuthParamsPresent {
-    return nil, fmt.Errorf("at least one of the following authentication parameters is required: %s", authParamsList)
+    return {{$zeroReturnVal}}, fmt.Errorf("at least one of the following authentication parameters is required: %s", authParamsList)
   }
   {{end}}
 
@@ -104,12 +105,12 @@ func Parse{{.Name}}(w http.ResponseWriter, r *http.Request) (*{{.Name}}, error) 
   r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
   err = json.NewDecoder(r.Body).Decode(&bodyData)
   if err != nil {
-    return nil, fmt.Errorf("error parsing request body: %w", err)
+    return {{$zeroReturnVal}}, fmt.Errorf("error parsing request body: %w", err)
   }
   var body *{{.RequestBodyName}}
   body, err = Parse{{.RequestBodyName}}(bodyData)
   if err != nil {
-    return nil, fmt.Errorf("error parsing request body: %w", err)
+    return {{$zeroReturnVal}}, fmt.Errorf("error parsing request body: %w", err)
   }
   req.Body = body
   {{else if .RawBody}}

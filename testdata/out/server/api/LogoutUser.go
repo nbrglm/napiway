@@ -92,7 +92,7 @@ func ParseLogoutUserReq(w http.ResponseWriter, r *http.Request) (*LogoutUserReq,
 	valAPIKey := r.Header.Get("X-App-API-Key")
 	valAPIKey = strings.TrimSpace(valAPIKey)
 	if valAPIKey == "" {
-		return nil, fmt.Errorf("missing required authentication: header X-App-API-Key")
+		return &LogoutUserReq{}, fmt.Errorf("missing required authentication: header X-App-API-Key")
 	} else {
 		req.APIKeyAuth = valAPIKey
 	}
@@ -117,7 +117,7 @@ func ParseLogoutUserReq(w http.ResponseWriter, r *http.Request) (*LogoutUserReq,
 	}
 
 	if !anyAuthParamsPresent {
-		return nil, fmt.Errorf("at least one of the following authentication parameters is required: %s", authParamsList)
+		return &LogoutUserReq{}, fmt.Errorf("at least one of the following authentication parameters is required: %s", authParamsList)
 	}
 
 	return &req, nil

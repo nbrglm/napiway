@@ -91,7 +91,7 @@ func ParseCreateUserReq(w http.ResponseWriter, r *http.Request) (*CreateUserReq,
 	valAdminToken := r.Header.Get("X-App-Admin-Token")
 	valAdminToken = strings.TrimSpace(valAdminToken)
 	if valAdminToken == "" {
-		return nil, fmt.Errorf("missing required authentication: header X-App-Admin-Token")
+		return &CreateUserReq{}, fmt.Errorf("missing required authentication: header X-App-Admin-Token")
 	} else {
 		req.AdminTokenAuth = valAdminToken
 	}
@@ -99,7 +99,7 @@ func ParseCreateUserReq(w http.ResponseWriter, r *http.Request) (*CreateUserReq,
 	valAPIKey := r.Header.Get("X-App-API-Key")
 	valAPIKey = strings.TrimSpace(valAPIKey)
 	if valAPIKey == "" {
-		return nil, fmt.Errorf("missing required authentication: header X-App-API-Key")
+		return &CreateUserReq{}, fmt.Errorf("missing required authentication: header X-App-API-Key")
 	} else {
 		req.APIKeyAuth = valAPIKey
 	}
@@ -115,12 +115,12 @@ func ParseCreateUserReq(w http.ResponseWriter, r *http.Request) (*CreateUserReq,
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	err = json.NewDecoder(r.Body).Decode(&bodyData)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing request body: %w", err)
+		return &CreateUserReq{}, fmt.Errorf("error parsing request body: %w", err)
 	}
 	var body *CreateUserRequestBody
 	body, err = ParseCreateUserRequestBody(bodyData)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing request body: %w", err)
+		return &CreateUserReq{}, fmt.Errorf("error parsing request body: %w", err)
 	}
 	req.Body = body
 

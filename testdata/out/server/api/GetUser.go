@@ -90,7 +90,7 @@ func ParseGetUserReq(w http.ResponseWriter, r *http.Request) (*GetUserReq, error
 	var valUserId *string
 	valUserId, err = parsestringParam(r.PathValue("userId"), "path: userId", true)
 	if err != nil {
-		return nil, err
+		return &GetUserReq{}, err
 	}
 
 	req.UserId = *valUserId
@@ -104,7 +104,7 @@ func ParseGetUserReq(w http.ResponseWriter, r *http.Request) (*GetUserReq, error
 	valAPIKey := r.Header.Get("X-App-API-Key")
 	valAPIKey = strings.TrimSpace(valAPIKey)
 	if valAPIKey == "" {
-		return nil, fmt.Errorf("missing required authentication: header X-App-API-Key")
+		return &GetUserReq{}, fmt.Errorf("missing required authentication: header X-App-API-Key")
 	} else {
 		req.APIKeyAuth = valAPIKey
 	}
@@ -112,7 +112,7 @@ func ParseGetUserReq(w http.ResponseWriter, r *http.Request) (*GetUserReq, error
 	valSessionToken := r.Header.Get("X-App-Session-Token")
 	valSessionToken = strings.TrimSpace(valSessionToken)
 	if valSessionToken == "" {
-		return nil, fmt.Errorf("missing required authentication: header X-App-Session-Token")
+		return &GetUserReq{}, fmt.Errorf("missing required authentication: header X-App-Session-Token")
 	} else {
 		req.SessionTokenAuth = valSessionToken
 	}

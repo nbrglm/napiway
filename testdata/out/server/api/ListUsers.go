@@ -101,7 +101,7 @@ func ParseListUsersReq(w http.ResponseWriter, r *http.Request) (*ListUsersReq, e
 	var valPageNumber *int64
 	valPageNumber, err = parseint64Param(r.URL.Query().Get("page"), "query: page", false)
 	if err != nil {
-		return nil, err
+		return &ListUsersReq{}, err
 	}
 
 	req.PageNumber = valPageNumber
@@ -109,7 +109,7 @@ func ParseListUsersReq(w http.ResponseWriter, r *http.Request) (*ListUsersReq, e
 	var valPageSize *int64
 	valPageSize, err = parseint64Param(r.URL.Query().Get("pageSize"), "query: pageSize", false)
 	if err != nil {
-		return nil, err
+		return &ListUsersReq{}, err
 	}
 
 	req.PageSize = valPageSize
@@ -121,7 +121,7 @@ func ParseListUsersReq(w http.ResponseWriter, r *http.Request) (*ListUsersReq, e
 	valAdminToken := r.Header.Get("X-App-Admin-Token")
 	valAdminToken = strings.TrimSpace(valAdminToken)
 	if valAdminToken == "" {
-		return nil, fmt.Errorf("missing required authentication: header X-App-Admin-Token")
+		return &ListUsersReq{}, fmt.Errorf("missing required authentication: header X-App-Admin-Token")
 	} else {
 		req.AdminTokenAuth = valAdminToken
 	}
@@ -129,7 +129,7 @@ func ParseListUsersReq(w http.ResponseWriter, r *http.Request) (*ListUsersReq, e
 	valAPIKey := r.Header.Get("X-App-API-Key")
 	valAPIKey = strings.TrimSpace(valAPIKey)
 	if valAPIKey == "" {
-		return nil, fmt.Errorf("missing required authentication: header X-App-API-Key")
+		return &ListUsersReq{}, fmt.Errorf("missing required authentication: header X-App-API-Key")
 	} else {
 		req.APIKeyAuth = valAPIKey
 	}

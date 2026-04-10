@@ -77,7 +77,7 @@ func ParseWhoAmIReq(w http.ResponseWriter, r *http.Request) (*WhoAmIReq, error) 
 	valAPIKey := r.Header.Get("X-App-API-Key")
 	valAPIKey = strings.TrimSpace(valAPIKey)
 	if valAPIKey == "" {
-		return nil, fmt.Errorf("missing required authentication: header X-App-API-Key")
+		return &WhoAmIReq{}, fmt.Errorf("missing required authentication: header X-App-API-Key")
 	} else {
 		req.APIKeyAuth = valAPIKey
 	}
@@ -85,7 +85,7 @@ func ParseWhoAmIReq(w http.ResponseWriter, r *http.Request) (*WhoAmIReq, error) 
 	valSessionToken := r.Header.Get("X-App-Session-Token")
 	valSessionToken = strings.TrimSpace(valSessionToken)
 	if valSessionToken == "" {
-		return nil, fmt.Errorf("missing required authentication: header X-App-Session-Token")
+		return &WhoAmIReq{}, fmt.Errorf("missing required authentication: header X-App-Session-Token")
 	} else {
 		req.SessionTokenAuth = valSessionToken
 	}
