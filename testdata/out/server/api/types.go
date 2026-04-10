@@ -189,6 +189,8 @@ func ParseCreateUserRequestBody(data map[string]any) (*CreateUserRequestBody, er
 		}
 
 		valEmailTyped = strings.TrimSpace(valEmailTyped)
+
+		valEmailTyped = strings.TrimSpace(valEmailTyped)
 		if len(valEmailTyped) == 0 {
 			return body, fmt.Errorf("field 'Email' must be non-empty")
 		}
@@ -248,6 +250,8 @@ func ParseCreateUserRequestBody(data map[string]any) (*CreateUserRequestBody, er
 		if !ok {
 			return body, fmt.Errorf("field 'UserName' has incorrect type")
 		}
+
+		valUserNameTyped = strings.TrimSpace(valUserNameTyped)
 
 		valUserNameTyped = strings.TrimSpace(valUserNameTyped)
 		if len(valUserNameTyped) == 0 {
@@ -445,6 +449,8 @@ func ParseErrorResponse(data map[string]any) (*ErrorResponse, error) {
 			return body, fmt.Errorf("field 'DebugMessage' has incorrect type")
 		}
 
+		valDebugMessageTyped = strings.TrimSpace(valDebugMessageTyped)
+
 		body.DebugMessage = &valDebugMessageTyped
 
 	}
@@ -460,6 +466,8 @@ func ParseErrorResponse(data map[string]any) (*ErrorResponse, error) {
 		if !ok {
 			return body, fmt.Errorf("field 'ErrorMessage' has incorrect type")
 		}
+
+		valErrorMessageTyped = strings.TrimSpace(valErrorMessageTyped)
 
 		valErrorMessageTyped = strings.TrimSpace(valErrorMessageTyped)
 		if len(valErrorMessageTyped) == 0 {
@@ -509,6 +517,8 @@ func ParseHealthCheckResponseBody(data map[string]any) (*HealthCheckResponseBody
 		if !ok {
 			return body, fmt.Errorf("field 'Status' has incorrect type")
 		}
+
+		valStatusTyped = strings.TrimSpace(valStatusTyped)
 
 		valStatusTyped = strings.TrimSpace(valStatusTyped)
 		if len(valStatusTyped) == 0 {
@@ -717,6 +727,8 @@ func ParseLogoutUserResponseBody(data map[string]any) (*LogoutUserResponseBody, 
 		}
 
 		valMessageTyped = strings.TrimSpace(valMessageTyped)
+
+		valMessageTyped = strings.TrimSpace(valMessageTyped)
 		if len(valMessageTyped) == 0 {
 			return body, fmt.Errorf("field 'Message' must be non-empty")
 		}
@@ -832,6 +844,8 @@ func ParseUser(data map[string]any) (*User, error) {
 		}
 
 		valEmailTyped = strings.TrimSpace(valEmailTyped)
+
+		valEmailTyped = strings.TrimSpace(valEmailTyped)
 		if len(valEmailTyped) == 0 {
 			return body, fmt.Errorf("field 'Email' must be non-empty")
 		}
@@ -869,6 +883,8 @@ func ParseUser(data map[string]any) (*User, error) {
 		}
 
 		valUserIdTyped = strings.TrimSpace(valUserIdTyped)
+
+		valUserIdTyped = strings.TrimSpace(valUserIdTyped)
 		if len(valUserIdTyped) == 0 {
 			return body, fmt.Errorf("field 'UserId' must be non-empty")
 		}
@@ -888,6 +904,8 @@ func ParseUser(data map[string]any) (*User, error) {
 		if !ok {
 			return body, fmt.Errorf("field 'UserName' has incorrect type")
 		}
+
+		valUserNameTyped = strings.TrimSpace(valUserNameTyped)
 
 		valUserNameTyped = strings.TrimSpace(valUserNameTyped)
 		if len(valUserNameTyped) == 0 {

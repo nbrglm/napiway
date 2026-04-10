@@ -137,6 +137,9 @@
     if !ok {
       return body, fmt.Errorf("field '{{.Name}}' has incorrect type")
     }
+    {{if eq .Type "string"}}
+    val{{.Name}}Typed = strings.TrimSpace(val{{.Name}}Typed)
+    {{end}}
     {{end}}
     {{if and .NonEmpty (eq .Type "string")}}
     val{{.Name}}Typed = strings.TrimSpace(val{{.Name}}Typed)
