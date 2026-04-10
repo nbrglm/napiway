@@ -27,8 +27,8 @@ func New{{.Name}}(
 {{range .Fields}}
 {{if not .Required}}
 // With{{.Name}} sets the optional field {{.Name}} and returns the modified {{ $typeName }} instance
-func (o *{{ $typeName }}) With{{.Name}}(value {{if.PtrType}}*{{end}}{{if .IsArray}}[]{{end}}{{.Type}}) *{{ $typeName }} {
-  o.{{.Name}} = value
+func (o *{{ $typeName }}) With{{.Name}}(value {{if .IsArray}}[]{{end}}{{.Type}}) *{{ $typeName }} {
+  o.{{.Name}} = {{if.PtrType}}&{{end}}value
   return o
 }
 {{end}}

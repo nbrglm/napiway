@@ -120,20 +120,20 @@ func NewCreateUserRequestBody(
 }
 
 // WithAge sets the optional field Age and returns the modified CreateUserRequestBody instance
-func (o *CreateUserRequestBody) WithAge(value *int64) *CreateUserRequestBody {
-	o.Age = value
+func (o *CreateUserRequestBody) WithAge(value int64) *CreateUserRequestBody {
+	o.Age = &value
 	return o
 }
 
 // WithArbitraryData sets the optional field ArbitraryData and returns the modified CreateUserRequestBody instance
-func (o *CreateUserRequestBody) WithArbitraryData(value *map[string]any) *CreateUserRequestBody {
-	o.ArbitraryData = value
+func (o *CreateUserRequestBody) WithArbitraryData(value map[string]any) *CreateUserRequestBody {
+	o.ArbitraryData = &value
 	return o
 }
 
 // WithOptionalStatus sets the optional field OptionalStatus and returns the modified CreateUserRequestBody instance
-func (o *CreateUserRequestBody) WithOptionalStatus(value *UserStatus) *CreateUserRequestBody {
-	o.OptionalStatus = value
+func (o *CreateUserRequestBody) WithOptionalStatus(value UserStatus) *CreateUserRequestBody {
+	o.OptionalStatus = &value
 	return o
 }
 
@@ -305,14 +305,14 @@ func NewCreateUserResponseBody(
 }
 
 // WithArbitraryData sets the optional field ArbitraryData and returns the modified CreateUserResponseBody instance
-func (o *CreateUserResponseBody) WithArbitraryData(value *map[string]any) *CreateUserResponseBody {
-	o.ArbitraryData = value
+func (o *CreateUserResponseBody) WithArbitraryData(value map[string]any) *CreateUserResponseBody {
+	o.ArbitraryData = &value
 	return o
 }
 
 // WithOptionalStatus sets the optional field OptionalStatus and returns the modified CreateUserResponseBody instance
-func (o *CreateUserResponseBody) WithOptionalStatus(value *UserStatus) *CreateUserResponseBody {
-	o.OptionalStatus = value
+func (o *CreateUserResponseBody) WithOptionalStatus(value UserStatus) *CreateUserResponseBody {
+	o.OptionalStatus = &value
 	return o
 }
 
@@ -425,8 +425,8 @@ func NewErrorResponse(
 }
 
 // WithDebugMessage sets the optional field DebugMessage and returns the modified ErrorResponse instance
-func (o *ErrorResponse) WithDebugMessage(value *string) *ErrorResponse {
-	o.DebugMessage = value
+func (o *ErrorResponse) WithDebugMessage(value string) *ErrorResponse {
+	o.DebugMessage = &value
 	return o
 }
 
@@ -789,8 +789,8 @@ func NewUser(
 }
 
 // WithAge sets the optional field Age and returns the modified User instance
-func (o *User) WithAge(value *int64) *User {
-	o.Age = value
+func (o *User) WithAge(value int64) *User {
+	o.Age = &value
 	return o
 }
 

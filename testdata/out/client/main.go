@@ -337,7 +337,7 @@ func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (CreateUserResult,
 			"test@example.com",
 			optionalUserStatus,
 			"Test User",
-		).WithAge(&AGE).WithOptionalStatus(&optionalUserStatus),
+		).WithAge(AGE).WithOptionalStatus(optionalUserStatus),
 	)
 	resOptionalFieldPresent, err := api.CreateUser(ctx, reqOptionalFieldPresent)
 	if err != nil {
@@ -363,7 +363,7 @@ func testCreateUser(ctx context.Context, api *sdk.TestingAPI) (CreateUserResult,
 			"test@example.com",
 			sdk.UserStatusINACTIVE_USER,
 			"Test User",
-		).WithArbitraryData(&arbitraryDataSent),
+		).WithArbitraryData(arbitraryDataSent),
 	)
 	resWithArbitraryData, err := api.CreateUser(ctx, reqWithArbitraryData)
 	if err != nil {

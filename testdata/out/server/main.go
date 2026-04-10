@@ -277,15 +277,20 @@ func handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		IsActive: true,
 		Age:      req.Body.Age,
 	}
+
 	users = append(users, user)
-	resp := api.NewCreateUser201(
-		api.
-			NewCreateUserResponseBody(
-				req.Body.Status,
-				mapToApiUser(user),
-			).
-			WithArbitraryData(req.Body.ArbitraryData).WithOptionalStatus(req.Body.OptionalStatus),
+	respBody := api.NewCreateUserResponseBody(
+		req.Body.Status,
+		mapToApiUser(user),
 	)
+	if req.Body.ArbitraryData != nil {
+		respBody = respBody.WithArbitraryData(*req.Body.ArbitraryData)
+	}
+	if req.Body.OptionalStatus != nil {
+		respBody = respBody.WithOptionalStatus(*req.Body.OptionalStatus)
+	}
+
+	resp := api.NewCreateUser201(respBody)
 
 	req.Write201(w, resp)
 }
@@ -395,11 +400,9 @@ func stdErr(exit bool, format string, a ...any) {
 }
 
 func mapToApiUser(user User) *api.User {
-	var age *int64
+	u := api.NewUser(user.Email, user.IsActive, user.ID, user.Name)
 	if user.Age != nil {
-		ageVal := int64(*user.Age)
-		age = &ageVal
+		u.WithAge(*user.Age)
 	}
-	u := api.NewUser(user.Email, user.IsActive, user.ID, user.Name).WithAge(age)
 	return u
 }
