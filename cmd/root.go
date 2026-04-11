@@ -76,6 +76,11 @@ func generate(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Print some stats about the spec
+	cmd.Printf("Specification loaded successfully!\n")
+	cmd.Printf("Number of endpoints: %d\n", len(cfg.Endpoints))
+	cmd.Printf("Number of schemas: %d\n", len(cfg.Schemas))
+
 	if cfg.GoServer != nil {
 		err = golang.GenerateServerHelpers(cfg.GoServer, cfg)
 		if err != nil {

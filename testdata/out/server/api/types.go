@@ -919,6 +919,7 @@ func ParseUser(data map[string]any) (*User, error) {
 	return body, nil
 }
 
+// Enum representing the status of a user.
 type UserStatus string
 
 const (

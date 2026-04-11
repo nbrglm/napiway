@@ -1,5 +1,6 @@
 {{define "enumTypeGenerator"}}
 {{$enumName := .Name}}
+{{if .Description}}// {{.Description}}{{end}}
 type {{$enumName}} string
 
 const (
