@@ -20,7 +20,6 @@ import (
 	"path"
 
 	"github.com/goccy/go-yaml"
-	"github.com/nbrglm/napiway/generators/typescript"
 	"github.com/nbrglm/napiway/spec"
 	"github.com/spf13/cobra"
 )
@@ -76,10 +75,6 @@ var statsCmd = &cobra.Command{
 		}
 
 		if cfg.TsSDK != nil {
-			err := typescript.GenerateTSSDK(*cfg.TsSDK, cfg)
-			if err != nil {
-				panic(err)
-			}
 			cmd.Println("TypeScript SDK generation is enabled!")
 			cmd.Println("Output directory:", cfg.TsSDK.OutputDir)
 		}
