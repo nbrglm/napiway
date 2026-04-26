@@ -50,7 +50,7 @@ export class {{.ClientName}} {
     };
     {{range .Request.HeaderParams}}
     var header{{.Name}} = paramToString(params.{{.Name}}, "header: {{.TransportName}}", "{{.Type}}", {{.Required}});
-    requestInit.headers = {...requestInit.headers, "{{.TransportName}}": header{{.Name}});
+    requestInit.headers = {...requestInit.headers, "{{.TransportName}}": header{{.Name}}};
     {{end}}
     {{range .Request.AuthAll}}
     {{if eq .Type "header"}}
