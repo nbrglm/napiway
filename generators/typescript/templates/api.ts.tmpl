@@ -1,8 +1,8 @@
 {{define "api.ts"}}
 {{$clientName := .ClientName}}
-import * as Models from "./models";
-export * from "./models";
-import { {{$clientName}}Error, ReasonTransport, ReasonEncoding, ReasonUnexpected } from "./models";
+import * as Models from "./models.js";
+export * from "./models.js";
+import { {{$clientName}}Error, ReasonTransport, ReasonEncoding, ReasonUnexpected } from "./models.js";
 
 export const {{$clientName}}Version = "{{.ClientVersion}}"
 

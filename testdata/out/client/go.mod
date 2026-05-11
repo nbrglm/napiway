@@ -1,6 +1,6 @@
 module github.com/nbrglm/napiway/testdata/out/client
 
-go 1.25.0
+go 1.26.3
 
 replace github.com/nbrglm/napiway/testdata/out/go_sdk => ../go-sdk
 

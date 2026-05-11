@@ -1,8 +1,8 @@
 
 
-import * as Models from "./models";
-export * from "./models";
-import { TestingAPIError, ReasonTransport, ReasonEncoding, ReasonUnexpected } from "./models";
+import * as Models from "./models.js";
+export * from "./models.js";
+import { TestingAPIError, ReasonTransport, ReasonEncoding, ReasonUnexpected } from "./models.js";
 
 export const TestingAPIVersion = "1.0.0"
 
