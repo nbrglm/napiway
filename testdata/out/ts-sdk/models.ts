@@ -260,7 +260,7 @@ export interface ListUsersResponseBody {
   * Required
   * 
   */
-  Users: User;
+  Users: User[];
 
   
 }
