@@ -101,11 +101,10 @@ func GenerateGoSDK(cfg *spec.GoSDKGeneration, spc *spec.Specification) error {
 
 func generateAndWriteSdkTypesFile(cfg *spec.GoSDKGeneration, spc *spec.Specification, packageName string) error {
 	types := TypesDataFromSpec(spc)
-	authMethodsAllDefined := AuthMethodsFromSpec(spc)
 	fileData := GoTypesFileData{
 		PackageName: packageName,
 		Types:       types,
-		AuthMethods: authMethodsAllDefined,
+		AuthMethods: AuthMethodsFromSpec(spc),
 	}
 	filePath := filepath.Join(cfg.OutputDir, "types.go")
 	content, err := ExecuteTemplate("sdkTypesFile", fileData)

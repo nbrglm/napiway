@@ -4,6 +4,10 @@ import * as Models from "./models.js";
 export * from "./models.js";
 import { {{$clientName}}Error, ReasonTransport, ReasonEncoding, ReasonUnexpected } from "./models.js";
 
+{{range .AuthMethods}}
+export const {{.Name}}AuthKey = "{{.TransportName}}";
+{{end}}
+
 export const {{$clientName}}Version = "{{.ClientVersion}}"
 
 export class {{.ClientName}} {

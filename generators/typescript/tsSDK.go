@@ -59,6 +59,7 @@ func GenerateTSSDK(genCfg spec.TsSDKGeneration, spc *spec.Specification) (err er
 		ClientName:    clientName,
 		ClientVersion: spc.Version,
 		Endpoints:     endpoints,
+		AuthMethods:   AuthMethodsFromSpec(spc),
 	}
 
 	// write api.ts
@@ -490,4 +491,20 @@ func IsTypeEnum(isPrimitive bool, typ string, schemas []*spec.Schema) bool {
 		}
 	}
 	return false
+}
+
+func AuthMethodsFromSpec(specification *spec.Specification) []AuthMethodData {
+	authMethods := make([]AuthMethodData, len(specification.Auth))
+	for i, auth := range specification.Auth {
+		authMethods[i] = AuthMethodData{
+			ID:            auth.ID,
+			Name:          exportedName(auth.Name),
+			TransportName: auth.TransportName,
+			Type:          AuthMethodType(auth.Type),
+			Description:   auth.Description,
+			Format:        auth.Format,
+		}
+	}
+	sortAuthMethodsByID(&authMethods)
+	return authMethods
 }

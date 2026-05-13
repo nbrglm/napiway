@@ -10,6 +10,11 @@ import (
   "strings"
 )
 
+// Auth method keys, if any
+{{range .AuthMethods}}
+const {{.Name}}AuthKey = "{{.TransportName}}"
+{{end}}
+
 {{if .Types}}
 {{template "typeGenerator" .}}
 {{end}}

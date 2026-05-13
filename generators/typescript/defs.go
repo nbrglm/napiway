@@ -22,6 +22,7 @@ type TsSdkApiFileData struct {
 	ClientName    string
 	ClientVersion string
 	Endpoints     []EndpointData
+	AuthMethods   []AuthMethodData
 }
 
 type EndpointData struct {

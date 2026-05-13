@@ -5,6 +5,16 @@ import (
 	"strings"
 )
 
+// Auth method keys, if any
+
+const AdminTokenAuthKey = "X-App-Admin-Token"
+
+const APIKeyAuthKey = "X-App-API-Key"
+
+const RefreshTokenAuthKey = "X-App-Refresh-Token"
+
+const SessionTokenAuthKey = "X-App-Session-Token"
+
 type CreateUserRequestBody struct {
 
 	// The age of the user to be created.

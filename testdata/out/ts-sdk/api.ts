@@ -4,6 +4,16 @@ import * as Models from "./models.js";
 export * from "./models.js";
 import { TestingAPIError, ReasonTransport, ReasonEncoding, ReasonUnexpected } from "./models.js";
 
+
+export const AdminTokenAuthKey = "X-App-Admin-Token";
+
+export const APIKeyAuthKey = "X-App-API-Key";
+
+export const RefreshTokenAuthKey = "X-App-Refresh-Token";
+
+export const SessionTokenAuthKey = "X-App-Session-Token";
+
+
 export const TestingAPIVersion = "1.0.0"
 
 export class TestingAPI {
